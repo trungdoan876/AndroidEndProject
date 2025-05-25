@@ -7,6 +7,7 @@ import android.widget.ImageButton;
 import android.widget.Spinner;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 
 import com.google.android.material.tabs.TabLayout;
 
@@ -52,31 +53,24 @@ public class MainActivity extends AppCompatActivity {
         tabLayout.addTab(tabLayout.newTab().setText("Camera").setIcon(R.drawable.camera));
         tabLayout.addTab(tabLayout.newTab().setText("Chat").setIcon(R.drawable.chatbox));
 
+        //hien thị fragment mặc định
+        replaceFragment(new TextFragment());
         // Xử lý sự kiện khi chọn tab
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
-                // Xử lý khi tab được chọn
                 switch (tab.getPosition()) {
                     case 0:
-                        // Tab "Text" được chọn
+                        replaceFragment(new TextFragment());
                         break;
                     case 1:
-                        // Tab "Camera" được chọn
-                        Intent intent = new Intent(MainActivity.this,CameraActivity.class);
-                        startActivity(intent);
                         break;
                     case 2:
-                        // Tab "Handwriting" được chọn
-                        break;
-                    case 3:
-                        // Tab "Conversation" được chọn
-                        break;
-                    case 4:
-                        // Tab "Voice" được chọn
+                        replaceFragment(new ChatFragment());
                         break;
                 }
             }
+
 
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {}
@@ -85,4 +79,10 @@ public class MainActivity extends AppCompatActivity {
             public void onTabReselected(TabLayout.Tab tab) {}
         });
     }
+    private void replaceFragment(Fragment fragment) {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, fragment)
+                .commit();
+    }
+
 }

@@ -56,20 +56,11 @@
         app:tabTextColor="@android:color/darker_gray"/>
 
     <!-- Khu vực nội dung của tab -->
-    <LinearLayout
-        android:id="@+id/contentLayout"
+
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <EditText
-            android:id="@+id/etInputText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Enter text"
-            android:textSize="18sp"/>
-
-    </LinearLayout>
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
 
 </LinearLayout>

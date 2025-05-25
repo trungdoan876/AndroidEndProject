@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#F9F9F9">
+
+    <EditText
+        android:id="@+id/inputText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nhập văn bản cần dịch"
+        android:background="@android:drawable/editbox_background_normal"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:elevation="2dp"
+        android:textColor="#000000"
+        android:textColorHint="#999999"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/outputText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="Văn bản đã được dịch"
+        android:textSize="16sp"
+        android:textColor="#333333"
+        android:background="#FFFFFF"
+        android:elevation="2dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        android:minHeight="100dp" />
+</LinearLayout>
