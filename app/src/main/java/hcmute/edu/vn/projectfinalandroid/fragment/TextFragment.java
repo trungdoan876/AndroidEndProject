@@ -25,9 +25,7 @@ public class TextFragment extends Fragment {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable translateRunnable;
 
-    private String sourceLang;
-    private String targetLang;
-
+    private String sourceLang, targetLang;
     private TextTranslator translator;
 
     @Nullable
@@ -40,29 +38,31 @@ public class TextFragment extends Fragment {
         EditText inputText = view.findViewById(R.id.inputText);
         outputText = view.findViewById(R.id.outputText);
 
+        //lấy tham số được guwir từ main activity
         Bundle args = getArguments();
         sourceLang = (args != null) ? args.getString("sourceLang", "en") : "en";
         targetLang = (args != null) ? args.getString("targetLang", "vi") : "vi";
 
         outputText.setText("Downloading model...");
 
-        // Khởi tạo translator
+        // Khởi tạo translator - để truyền callback xử lý
         translator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
+            //khi model dịch được tải xong -> sẵn sàng để dịch
             @Override
             public void onModelReady() {
                 outputText.setText("Ready to translate");
             }
-
+            //tải thất bại
             @Override
             public void onModelDownloadFailed(String error) {
                 outputText.setText("Download failed: " + error);
             }
-
+            //dịch thành công -> gắn output = vban được dịch
             @Override
             public void onTranslationSuccess(String translatedText) {
                 outputText.setText(translatedText);
             }
-
+            // dịch thất bại
             @Override
             public void onTranslationFailed(String errorMessage) {
                 outputText.setText("Translation error: " + errorMessage);
@@ -70,6 +70,7 @@ public class TextFragment extends Fragment {
         });
 
         // Lắng nghe nhập văn bản
+        // sử dụng textwatcher để theo dõi người dùng gõ -> dịch theo thời gian thực
         inputText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -78,7 +79,7 @@ public class TextFragment extends Fragment {
                 String text = s.toString();
 
                 if (text.isEmpty()) {
-                    outputText.setText("Enter text...");
+                    outputText.setText("");
                     return;
                 }
 
@@ -93,7 +94,7 @@ public class TextFragment extends Fragment {
                         outputText.setText(translatedText);
                     }
                     @Override public void onTranslationFailed(String errorMessage) {
-                        outputText.setText("Error: " + errorMessage);
+                        outputText.setText(errorMessage);
                     }
                 });
 
