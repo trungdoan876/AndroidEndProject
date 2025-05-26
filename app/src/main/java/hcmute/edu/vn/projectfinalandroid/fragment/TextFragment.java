@@ -1,4 +1,4 @@
-package hcmute.edu.vn.projectfinalandroid;
+package hcmute.edu.vn.projectfinalandroid.fragment;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,10 +17,11 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.google.mlkit.common.model.DownloadConditions;
-import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
+
+import hcmute.edu.vn.projectfinalandroid.R;
 
 public class TextFragment extends Fragment {
     private static final String TAG = "TextFragment"; // Tag cho log
@@ -29,6 +30,8 @@ public class TextFragment extends Fragment {
     private boolean isModelReady = false;
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable translateRunnable;
+    private String sourceLang;
+    private String targetLang;
 
     @Nullable
     @Override
@@ -38,15 +41,22 @@ public class TextFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_text, container, false);
         EditText inputText = view.findViewById(R.id.inputText);
         outputText = view.findViewById(R.id.outputText);
-
+        Bundle args = getArguments();
+        if (args != null) {
+            sourceLang = args.getString("sourceLang", "en");
+            targetLang = args.getString("targetLang", "vi");
+            Log.d(TAG, "onCreateView: Received sourceLang=" + sourceLang + ", targetLang=" + targetLang);
+        } else {
+            sourceLang = "en";
+            targetLang = "vi";
+        }
         //cấu hình để sử dụng mlkit
         // thiết lập đối tượng Translator của MLKit
         // định nghĩa cấu hình cho bộ dịch, bao gồm nn nguồn và đích
         // TranslateLanguage: enum của ML Kit
-        //
         TranslatorOptions options = new TranslatorOptions.Builder()
-                .setSourceLanguage(TranslateLanguage.VIETNAMESE)
-                .setTargetLanguage(TranslateLanguage.ENGLISH)
+                .setSourceLanguage(sourceLang)
+                .setTargetLanguage(targetLang)
                 .build();
         // tạo đối tương Translator để dịch văn bản
         translator = Translation.getClient(options);
@@ -57,16 +67,15 @@ public class TextFragment extends Fragment {
                 .requireWifi()
                 .build();
 
-        outputText.setText("Loading translation model...");
+        outputText.setText("Waiting...");
         translator.downloadModelIfNeeded(conditions)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "downloadModelIfNeeded: Model downloaded successfully");
                     isModelReady = true;
                     outputText.setText("Ready to translate");
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "downloadModelIfNeeded: Failed to download model", e);
-                    outputText.setText("Error downloading model: " + e.getMessage());
+                    outputText.setText("Failed to download model");
+//                    outputText.setText(e.getMessage());
                 });
 
         // dùng TextWatcher để lắng nghe thay đổi văn bản và dịch realtime
@@ -83,7 +92,7 @@ public class TextFragment extends Fragment {
                 if (isModelReady && !text.isEmpty()) {
                     translateText(text);
                 } else if (text.isEmpty()) {
-                    outputText.setText("Enter text to translate");
+                    outputText.setText("Enter text...");
                 } else {
                     Log.w(TAG, "afterTextChanged: Model not ready yet");
                 }
@@ -95,17 +104,14 @@ public class TextFragment extends Fragment {
     private void translateText(String text) {
         if (translateRunnable != null) {
             handler.removeCallbacks(translateRunnable);
-            Log.d(TAG, "translateText: Removed previous translation task");
         }
         translateRunnable = () -> {
             Log.d(TAG, "translateText: Starting translation for: " + text);
             translator.translate(text)
                     .addOnSuccessListener(translatedText -> {
-                        Log.d(TAG, "translateText: Translation successful: " + translatedText);
                         outputText.setText(translatedText);
                     })
                     .addOnFailureListener(e -> {
-                        Log.e(TAG, "translateText: Translation failed", e);
                         outputText.setText(e.getMessage());
                     });
         };
@@ -115,7 +121,6 @@ public class TextFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        Log.d(TAG, "onDestroyView: Closing translator and cleaning up");
         translator.close();
         if (translateRunnable != null) {
             handler.removeCallbacks(translateRunnable);
