@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey;
         foreignKeys = @ForeignKey(
                 entity = User.class,
                 parentColumns = "id_user",
-                childColumns = "id_user_category",
+                childColumns = "id_user",
                 onDelete = ForeignKey.CASCADE),
         indices = @Index("id_user"))
 public class Category {

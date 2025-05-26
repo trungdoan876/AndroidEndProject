@@ -5,7 +5,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,22 +15,20 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.google.mlkit.common.model.DownloadConditions;
-import com.google.mlkit.nl.translate.Translation;
-import com.google.mlkit.nl.translate.Translator;
-import com.google.mlkit.nl.translate.TranslatorOptions;
-
 import hcmute.edu.vn.projectfinalandroid.R;
+import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
 
 public class TextFragment extends Fragment {
-    private static final String TAG = "TextFragment"; // Tag cho log
+    private static final String TAG = "TextFragment";
+
     private TextView outputText;
-    private Translator translator;
-    private boolean isModelReady = false;
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable translateRunnable;
+
     private String sourceLang;
     private String targetLang;
+
+    private TextTranslator translator;
 
     @Nullable
     @Override
@@ -39,91 +36,82 @@ public class TextFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_text, container, false);
+
         EditText inputText = view.findViewById(R.id.inputText);
         outputText = view.findViewById(R.id.outputText);
+
         Bundle args = getArguments();
-        if (args != null) {
-            sourceLang = args.getString("sourceLang", "en");
-            targetLang = args.getString("targetLang", "vi");
-            Log.d(TAG, "onCreateView: Received sourceLang=" + sourceLang + ", targetLang=" + targetLang);
-        } else {
-            sourceLang = "en";
-            targetLang = "vi";
-        }
-        //cấu hình để sử dụng mlkit
-        // thiết lập đối tượng Translator của MLKit
-        // định nghĩa cấu hình cho bộ dịch, bao gồm nn nguồn và đích
-        // TranslateLanguage: enum của ML Kit
-        TranslatorOptions options = new TranslatorOptions.Builder()
-                .setSourceLanguage(sourceLang)
-                .setTargetLanguage(targetLang)
-                .build();
-        // tạo đối tương Translator để dịch văn bản
-        translator = Translation.getClient(options);
+        sourceLang = (args != null) ? args.getString("sourceLang", "en") : "en";
+        targetLang = (args != null) ? args.getString("targetLang", "vi") : "vi";
 
-        // tải mô hình ngoon ngữ trước khi dịch
-        // mô hình dịch là cần thiết để thực hiện dịch ngoại tuyến sau khi tải lần đầu. Nếu không tải mô hình, việc dịch sẽ thất bại.
-        DownloadConditions conditions = new DownloadConditions.Builder()
-                .requireWifi()
-                .build();
+        outputText.setText("Downloading model...");
 
-        outputText.setText("Waiting...");
-        translator.downloadModelIfNeeded(conditions)
-                .addOnSuccessListener(aVoid -> {
-                    isModelReady = true;
-                    outputText.setText("Ready to translate");
-                })
-                .addOnFailureListener(e -> {
-                    outputText.setText("Failed to download model");
-//                    outputText.setText(e.getMessage());
-                });
+        // Khởi tạo translator
+        translator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
+            @Override
+            public void onModelReady() {
+                outputText.setText("Ready to translate");
+            }
 
-        // dùng TextWatcher để lắng nghe thay đổi văn bản và dịch realtime
+            @Override
+            public void onModelDownloadFailed(String error) {
+                outputText.setText("Download failed: " + error);
+            }
+
+            @Override
+            public void onTranslationSuccess(String translatedText) {
+                outputText.setText(translatedText);
+            }
+
+            @Override
+            public void onTranslationFailed(String errorMessage) {
+                outputText.setText("Translation error: " + errorMessage);
+            }
+        });
+
+        // Lắng nghe nhập văn bản
         inputText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override
             public void afterTextChanged(Editable s) {
                 String text = s.toString();
-                if (isModelReady && !text.isEmpty()) {
-                    translateText(text);
-                } else if (text.isEmpty()) {
+
+                if (text.isEmpty()) {
                     outputText.setText("Enter text...");
-                } else {
-                    Log.w(TAG, "afterTextChanged: Model not ready yet");
+                    return;
                 }
+
+                if (translateRunnable != null) {
+                    handler.removeCallbacks(translateRunnable);
+                }
+
+                translateRunnable = () -> translator.translateText(text, new TextTranslator.TranslationCallback() {
+                    @Override public void onModelReady() {}
+                    @Override public void onModelDownloadFailed(String error) {}
+                    @Override public void onTranslationSuccess(String translatedText) {
+                        outputText.setText(translatedText);
+                    }
+                    @Override public void onTranslationFailed(String errorMessage) {
+                        outputText.setText("Error: " + errorMessage);
+                    }
+                });
+
+                handler.postDelayed(translateRunnable, 500); // delay 500ms để tránh dịch quá nhiều khi người dùng đang gõ
             }
         });
+
         return view;
-    }
-    //gọi api của MLKit để dịch văn bản
-    private void translateText(String text) {
-        if (translateRunnable != null) {
-            handler.removeCallbacks(translateRunnable);
-        }
-        translateRunnable = () -> {
-            Log.d(TAG, "translateText: Starting translation for: " + text);
-            translator.translate(text)
-                    .addOnSuccessListener(translatedText -> {
-                        outputText.setText(translatedText);
-                    })
-                    .addOnFailureListener(e -> {
-                        outputText.setText(e.getMessage());
-                    });
-        };
-        handler.postDelayed(translateRunnable, 500);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        translator.close();
         if (translateRunnable != null) {
             handler.removeCallbacks(translateRunnable);
+        }
+        if (translator != null) {
+            translator.close();
         }
     }
 }

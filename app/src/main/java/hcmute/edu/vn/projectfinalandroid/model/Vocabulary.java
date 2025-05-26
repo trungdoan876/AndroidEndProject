@@ -19,4 +19,45 @@ public class Vocabulary {
     private String vocab;
     private String mean_vocab;
     private int id_category;
+
+    public Vocabulary() {
+    }
+
+    public Vocabulary(String vocab, String mean_vocab, int id_category) {
+        this.vocab = vocab;
+        this.mean_vocab = mean_vocab;
+        this.id_category = id_category;
+    }
+
+    public int getId_vocab() {
+        return id_vocab;
+    }
+
+    public void setId_vocab(int id_vocab) {
+        this.id_vocab = id_vocab;
+    }
+
+    public String getVocab() {
+        return vocab;
+    }
+
+    public void setVocab(String vocab) {
+        this.vocab = vocab;
+    }
+
+    public String getMean_vocab() {
+        return mean_vocab;
+    }
+
+    public void setMean_vocab(String mean_vocab) {
+        this.mean_vocab = mean_vocab;
+    }
+
+    public int getId_category() {
+        return id_category;
+    }
+
+    public void setId_category(int id_category) {
+        this.id_category = id_category;
+    }
 }

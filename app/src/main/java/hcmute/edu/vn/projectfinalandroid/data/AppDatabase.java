@@ -11,10 +11,12 @@ import hcmute.edu.vn.projectfinalandroid.dao.HistoryDAO;
 import hcmute.edu.vn.projectfinalandroid.dao.UserDAO;
 import hcmute.edu.vn.projectfinalandroid.dao.VocabularyDAO;
 import hcmute.edu.vn.projectfinalandroid.model.Category;
+import hcmute.edu.vn.projectfinalandroid.model.History;
 import hcmute.edu.vn.projectfinalandroid.model.User;
+import hcmute.edu.vn.projectfinalandroid.model.Vocabulary;
 
 // AppDatabase.java
-@Database(entities = {User.class, Category.class}, version = 1)
+@Database(entities = {User.class, Category.class, History.class, Vocabulary.class}, version = 1)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
 
