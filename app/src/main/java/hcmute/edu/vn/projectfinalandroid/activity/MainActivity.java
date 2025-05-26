@@ -1,6 +1,7 @@
 package hcmute.edu.vn.projectfinalandroid.activity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -37,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             new Thread(() -> {
-                User user = db.userDao().getUserByNameAccount(passwordStr);  // Giả sử có hàm này trong UserDAO
+                User user = db.userDao().getUserByNameAccount(usernameStr);  // Giả sử có hàm này trong UserDAO
 
                 runOnUiThread(() -> {
                     if (user == null) {
@@ -45,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         if (user.getPassword().equals(passwordStr)) {
                             Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show();
-                            startActivity(new Intent(MainActivity.this, HomeActivity.class));
+                            Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                            startActivity(intent);
+                            SharedPreferences prefs = getSharedPreferences("MyApp", MODE_PRIVATE);
+                            prefs.edit().putInt("userId", user.getId_user()).apply();
                             finish();
                         } else {
                             Toast.makeText(this, "Incorrect password!", Toast.LENGTH_SHORT).show();

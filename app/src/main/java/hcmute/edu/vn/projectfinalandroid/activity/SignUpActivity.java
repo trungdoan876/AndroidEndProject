@@ -49,10 +49,6 @@ public class SignUpActivity extends AppCompatActivity {
             String passwordStr = password.getText().toString().trim();
             String passwordConfirmStr = passwordConfirm.getText().toString().trim();
             if (emailStr.isEmpty() || userNameStr.isEmpty() || accountNameStr.isEmpty() || passwordStr.isEmpty()) {
-                Log.d("Dang ky", emailStr);
-                Log.d("Dang ky", userNameStr);
-                Log.d("Dang ky", accountNameStr);
-                Log.d("Dang ky", passwordStr);
                 Toast.makeText(this, "Please enter complete information", Toast.LENGTH_SHORT).show();
                 return;
             }

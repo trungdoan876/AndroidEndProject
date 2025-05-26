@@ -23,8 +23,8 @@ import java.util.Map;
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.fragment.CameraFragment;
 import hcmute.edu.vn.projectfinalandroid.fragment.ChatFragment;
+import hcmute.edu.vn.projectfinalandroid.fragment.PersonalFragment;
 import hcmute.edu.vn.projectfinalandroid.fragment.TextFragment;
-import hcmute.edu.vn.projectfinalandroid.fragment.UserFragment;
 
 public class HomeActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -118,7 +118,7 @@ public class HomeActivity extends AppCompatActivity {
                         replaceFragment(new ChatFragment());
                         break;
                     case 3:
-                        replaceFragment(new UserFragment());
+                        replaceFragment(new PersonalFragment());
                         break;
                 }
             }
