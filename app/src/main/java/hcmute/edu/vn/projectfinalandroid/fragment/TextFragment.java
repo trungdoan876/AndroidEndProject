@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -26,6 +27,7 @@ import java.util.List;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.activity.MainActivity;
+import hcmute.edu.vn.projectfinalandroid.adapter.HistoryAdapter;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
 import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.History;
@@ -132,31 +134,33 @@ public class TextFragment extends Fragment {
         //nút xem lịch sử tra cứu của người dùng
         btnHistory.setOnClickListener(v -> {
             new Thread(() -> {
-                // Lấy danh sách lịch sử của người dùng
                 List<History> historyList = db.historyDAO().getHistoryByUserId(userId);
 
-                // Biến đổi danh sách thành chuỗi hiển thị
-                List<String> displayList = new ArrayList<>();
-//                for (History h : historyList) {
-//                    displayList.add("Gốc: " + h.getOriginalText() + "\nDịch: " + h.getTranslatedText());
-//                }
-
-                // Cập nhật UI từ luồng chính
                 requireActivity().runOnUiThread(() -> {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-                    builder.setTitle("Lịch sử dịch");
-
-                    if (displayList.isEmpty()) {
-                        builder.setMessage("Chưa có lịch sử nào.");
+                    if (historyList.isEmpty()) {
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle("Lịch sử dịch")
+                                .setMessage("Chưa có lịch sử nào.")
+                                .setPositiveButton("Đóng", null)
+                                .show();
                     } else {
-                        builder.setItems(displayList.toArray(new String[0]), null);
-                    }
+                        LayoutInflater inflater1 = LayoutInflater.from(requireContext());
+                        View dialogView = inflater1.inflate(R.layout.dialog_history, null);
 
-                    builder.setPositiveButton("Đóng", null);
-                    builder.show();
+                        ListView listView = dialogView.findViewById(R.id.listViewHistory);
+                        HistoryAdapter adapter = new HistoryAdapter(requireContext(), historyList);
+                        listView.setAdapter(adapter);
+
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle("Lịch sử dịch")
+                                .setView(dialogView)
+                                .setPositiveButton("Đóng", null)
+                                .show();
+                    }
                 });
             }).start();
         });
+
         return view;
     }
 
