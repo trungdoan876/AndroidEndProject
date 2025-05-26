@@ -29,9 +29,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".fragment.TextFragment"/>
-        <activity android:name=".fragment.CameraFragment"/>
-        <activity android:name=".fragment.ChatFragment"/>
+        <activity android:name=".activity.HomeActivity"/>
+        <activity android:name=".activity.SignUpActivity"/>
     </application>
 
 </manifest>

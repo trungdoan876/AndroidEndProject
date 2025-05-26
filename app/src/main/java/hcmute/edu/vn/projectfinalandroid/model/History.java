@@ -10,27 +10,41 @@ import androidx.room.PrimaryKey;
                 @ForeignKey(entity = User.class,
                         parentColumns = "id_user",
                         childColumns = "id_user",
-                        onDelete = ForeignKey.CASCADE),
-                @ForeignKey(entity = Category.class,
-                        parentColumns = "id_category",
-                        childColumns = "id_category",
                         onDelete = ForeignKey.CASCADE)
         },
-        indices = {@Index("id_user"), @Index("id_category")})
+        indices = {@Index("id_user")})
 public class History {
     @PrimaryKey(autoGenerate = true)
     private int id_history;
     private int id_user;
-    private int id_category;
+    private String originalText;
+    private String translatedText;
     private long dateTime;
 
     public History() {
     }
 
-    public History(int id_user, int id_category, long dateTime) {
+    public History(int id_user, String originalText, String translatedText, long dateTime) {
         this.id_user = id_user;
-        this.id_category = id_category;
+        this.originalText = originalText;
+        this.translatedText = translatedText;
         this.dateTime = dateTime;
+    }
+
+    public String getOriginalText() {
+        return originalText;
+    }
+
+    public void setOriginalText(String originalText) {
+        this.originalText = originalText;
+    }
+
+    public String getTranslatedText() {
+        return translatedText;
+    }
+
+    public void setTranslatedText(String translatedText) {
+        this.translatedText = translatedText;
     }
 
     public int getId_history() {
@@ -47,14 +61,6 @@ public class History {
 
     public void setId_user(int id_user) {
         this.id_user = id_user;
-    }
-
-    public int getId_category() {
-        return id_category;
-    }
-
-    public void setId_category(int id_category) {
-        this.id_category = id_category;
     }
 
     public long getDateTime() {

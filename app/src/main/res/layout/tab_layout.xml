@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
+
+    <!-- Thanh ngôn ngữ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center">
+
+        <!-- Spinner cho ngôn ngữ nguồn -->
+        <Spinner
+            android:id="@+id/spSourceLang"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="center"/>
+
+        <!-- Nút hoán đổi ngôn ngữ -->
+        <ImageButton
+            android:id="@+id/btnSwapLang"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:src="@drawable/ic_return"
+            android:scaleType="fitCenter"
+            android:contentDescription="Return"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            />
+
+        <!-- Spinner cho ngôn ngữ đích -->
+        <Spinner
+            android:id="@+id/spTargetLang"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="center"/>
+
+    </LinearLayout>
+
+    <!-- TabLayout cho các tab -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        app:tabTextAppearance="@android:style/TextAppearance.Widget.TabWidget"
+        app:tabIndicatorColor="@android:color/transparent"
+        app:tabSelectedTextColor="@android:color/black"
+        app:tabTextColor="@android:color/darker_gray"/>
+
+    <!-- Khu vực nội dung của tab -->
+
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+</LinearLayout>

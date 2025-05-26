@@ -16,7 +16,7 @@ import hcmute.edu.vn.projectfinalandroid.model.User;
 import hcmute.edu.vn.projectfinalandroid.model.Vocabulary;
 
 // AppDatabase.java
-@Database(entities = {User.class, Category.class, History.class, Vocabulary.class}, version = 1)
+@Database(entities = {User.class, Category.class, History.class, Vocabulary.class}, version = 3)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
 
@@ -30,7 +30,7 @@ public abstract class AppDatabase extends RoomDatabase {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
-                                    AppDatabase.class, "final_project_1")
+                                    AppDatabase.class, "final_project")
                             .fallbackToDestructiveMigration() // nếu cần reset db khi version thay đổi
                             .build();
                 }

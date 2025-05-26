@@ -17,16 +17,17 @@ import androidx.fragment.app.Fragment;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
+import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
+import hcmute.edu.vn.projectfinalandroid.model.History;
 
 public class TextFragment extends Fragment {
-    private static final String TAG = "TextFragment";
-
     private TextView outputText;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable translateRunnable;
 
     private String sourceLang, targetLang;
     private TextTranslator translator;
+    private AppDatabase db;
 
     @Nullable
     @Override
@@ -37,7 +38,8 @@ public class TextFragment extends Fragment {
 
         EditText inputText = view.findViewById(R.id.inputText);
         outputText = view.findViewById(R.id.outputText);
-
+        //khởi tạo database
+        db = AppDatabase.getInstance(requireContext());
         //lấy tham số được guwir từ main activity
         Bundle args = getArguments();
         sourceLang = (args != null) ? args.getString("sourceLang", "en") : "en";
@@ -92,6 +94,11 @@ public class TextFragment extends Fragment {
                     @Override public void onModelDownloadFailed(String error) {}
                     @Override public void onTranslationSuccess(String translatedText) {
                         outputText.setText(translatedText);
+//                        new Thread(() -> {
+//                            db.historyDAO().insert(
+//                                    new History(inputText.getText().toString(), translatedText, System.currentTimeMillis())
+//                            );
+//                        }).start();
                     }
                     @Override public void onTranslationFailed(String errorMessage) {
                         outputText.setText(errorMessage);

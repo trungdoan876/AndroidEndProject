@@ -7,17 +7,27 @@ import androidx.room.PrimaryKey;
 public class User {
     @PrimaryKey(autoGenerate = true)
     private int id_user;
-    private String name_account;
+    private String email;
     private String name_user;
+    private String name_account;
     private String password;
 
     public User() {
     }
 
-    public User(String name_account, String name_user, String password) {
-        this.name_account = name_account;
+    public User(String email, String name_user, String name_account, String password) {
+        this.email = email;
         this.name_user = name_user;
+        this.name_account = name_account;
         this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public int getId_user() {
