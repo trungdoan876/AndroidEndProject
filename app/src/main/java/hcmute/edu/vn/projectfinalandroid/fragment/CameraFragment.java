@@ -57,47 +57,52 @@ import java.util.List;
 import java.util.Map;
 
 import hcmute.edu.vn.projectfinalandroid.R;
+import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
 
 public class CameraFragment extends Fragment {
-    private PreviewView previewView;
-    private ImageCapture imageCapture;
-    private TextView tvOriginalText;
-    private TextView tvTranslatedText;
-    private Translator translator;
-    private String sourceLang;
-    private String targetLang;
-    private static final int CAMERA_PERMISSION_CODE = 100;
-    private static final int TARGET_IMAGE_SIZE = 800; // Kích thước tối đa sau khi resize
-
-    // Ánh xạ từ TranslateLanguage sang tên ngôn ngữ thân thiện
-    private Map<String, String> codeToName;
+    private PreviewView previewView; // Nơi hiện màn hình camera
+    private ImageCapture imageCapture; // Ảnh chụp để nhận diện văn bản
+    private TextView tvOriginalText; // văn bản gốc
+    private TextView tvTranslatedText; // văn bản dịch
+    private TextTranslator textTranslator; // Dùng lớp TextTranslator để dịch văn bản
+    private Translator translator; // Mô hình dịch thuật
+    private String sourceLang; // Ngôn ngữ gốc
+    private String targetLang; // Ngôn ngữ dịch
+    private String sourceLangName; // Tên của ngôn ngữ gốc
+    private String targetLangName; // Tên của ngôn ngữ dịch
+    private static final int CAMERA_PERMISSION_CODE = 100; // Biến kiểm tra quyền camera
+    private static final int TARGET_IMAGE_SIZE = 800; // Kích thước tối đa sau khi resize hình chụp
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_camera, container, false);
 
+        // Ánh xạ UI
         previewView = view.findViewById(R.id.previewView);
         tvOriginalText = view.findViewById(R.id.tvOriginalText);
         tvTranslatedText = view.findViewById(R.id.tvTranslatedText);
 
+        // Lấy ngôn ngữ gốc và ngôn ngữ dịch từ Bundle (HomeActivity truyền xuống)
         Bundle args = getArguments();
-        if (args != null) {
-            sourceLang = args.getString("sourceLang", TranslateLanguage.ENGLISH);
-            targetLang = args.getString("targetLang", TranslateLanguage.VIETNAMESE);
+        if (args != null && args.containsKey("sourceLang") && args.containsKey("targetLang")) {
+            sourceLang = args.getString("sourceLang");
+            targetLang = args.getString("targetLang");
+            sourceLangName = args.getString("sourceLangName", "Unknown"); // Lấy tên ngôn ngữ
+            targetLangName = args.getString("targetLangName", "Unknown"); // Lấy tên ngôn ngữ
             Log.d("CameraFragment", "Nhận ngôn ngữ từ Bundle: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
-        } else {
+        } else { // Nếu không lấy được thì mặc định là từ tiếng anh -> tiếng việt
             sourceLang = TranslateLanguage.ENGLISH;
             targetLang = TranslateLanguage.VIETNAMESE;
-            Log.d("CameraFragment", "Không có Bundle, dùng mặc định: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
+            sourceLangName = "English";
+            targetLangName = "Vietnamese";
+            Log.d("CameraFragment", "Không có Bundle hoặc thiếu dữ liệu, dùng mặc định: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
         }
 
-        // Khởi tạo ánh xạ ngôn ngữ
-        initializeCodeToName();
-
-        // Khởi tạo trình phiên dịch
+        // Khởi tạo TextTranslator
         setupTranslator();
 
+        // Tạo event cho nút chụp
         view.findViewById(R.id.btnCapture).setOnClickListener(v -> takePhoto());
 
         return view;
@@ -107,6 +112,7 @@ public class CameraFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Kiểm tra quyền camera
         previewView.post(() -> {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 startCamera();
@@ -116,114 +122,58 @@ public class CameraFragment extends Fragment {
         });
     }
 
-    // Khởi tạo ánh xạ từ TranslateLanguage sang tên ngôn ngữ thân thiện
-    private void initializeCodeToName() {
-        codeToName = new HashMap<>();
-        codeToName.put(TranslateLanguage.AFRIKAANS, "Afrikaans");
-        codeToName.put(TranslateLanguage.ALBANIAN, "Albanian");
-        codeToName.put(TranslateLanguage.ARABIC, "Arabic");
-        codeToName.put(TranslateLanguage.BELARUSIAN, "Belarusian");
-        codeToName.put(TranslateLanguage.BENGALI, "Bengali");
-        codeToName.put(TranslateLanguage.BULGARIAN, "Bulgarian");
-        codeToName.put(TranslateLanguage.CATALAN, "Catalan");
-        codeToName.put(TranslateLanguage.CHINESE, "Chinese");
-        codeToName.put(TranslateLanguage.CROATIAN, "Croatian");
-        codeToName.put(TranslateLanguage.CZECH, "Czech");
-        codeToName.put(TranslateLanguage.DANISH, "Danish");
-        codeToName.put(TranslateLanguage.DUTCH, "Dutch");
-        codeToName.put(TranslateLanguage.ENGLISH, "English");
-        codeToName.put(TranslateLanguage.ESTONIAN, "Estonian");
-        codeToName.put(TranslateLanguage.FINNISH, "Finnish");
-        codeToName.put(TranslateLanguage.FRENCH, "French");
-        codeToName.put(TranslateLanguage.GALICIAN, "Galician");
-        codeToName.put(TranslateLanguage.GERMAN, "German");
-        codeToName.put(TranslateLanguage.GREEK, "Greek");
-        codeToName.put(TranslateLanguage.HEBREW, "Hebrew");
-        codeToName.put(TranslateLanguage.HINDI, "Hindi");
-        codeToName.put(TranslateLanguage.HUNGARIAN, "Hungarian");
-        codeToName.put(TranslateLanguage.ICELANDIC, "Icelandic");
-        codeToName.put(TranslateLanguage.INDONESIAN, "Indonesian");
-        codeToName.put(TranslateLanguage.ITALIAN, "Italian");
-        codeToName.put(TranslateLanguage.JAPANESE, "Japanese");
-        codeToName.put(TranslateLanguage.KOREAN, "Korean");
-        codeToName.put(TranslateLanguage.LATVIAN, "Latvian");
-        codeToName.put(TranslateLanguage.LITHUANIAN, "Lithuanian");
-        codeToName.put(TranslateLanguage.MACEDONIAN, "Macedonian");
-        codeToName.put(TranslateLanguage.MALAY, "Malay");
-        codeToName.put(TranslateLanguage.NORWEGIAN, "Norwegian");
-        codeToName.put(TranslateLanguage.PERSIAN, "Persian");
-        codeToName.put(TranslateLanguage.POLISH, "Polish");
-        codeToName.put(TranslateLanguage.PORTUGUESE, "Portuguese");
-        codeToName.put(TranslateLanguage.ROMANIAN, "Romanian");
-        codeToName.put(TranslateLanguage.RUSSIAN, "Russian");
-        codeToName.put(TranslateLanguage.SLOVAK, "Slovak");
-        codeToName.put(TranslateLanguage.SLOVENIAN, "Slovenian");
-        codeToName.put(TranslateLanguage.SPANISH, "Spanish");
-        codeToName.put(TranslateLanguage.SWAHILI, "Swahili");
-        codeToName.put(TranslateLanguage.SWEDISH, "Swedish");
-        codeToName.put(TranslateLanguage.THAI, "Thai");
-        codeToName.put(TranslateLanguage.TURKISH, "Turkish");
-        codeToName.put(TranslateLanguage.UKRAINIAN, "Ukrainian");
-        codeToName.put(TranslateLanguage.VIETNAMESE, "Vietnamese");
-        codeToName.put(TranslateLanguage.WELSH, "Welsh");
-        codeToName.put(TranslateLanguage.ESPERANTO, "Esperanto");
-        codeToName.put(TranslateLanguage.IRISH, "Irish");
-        codeToName.put(TranslateLanguage.GUJARATI, "Gujarat");
-        codeToName.put(TranslateLanguage.HAITIAN_CREOLE, "Creole Haiti");
-        codeToName.put(TranslateLanguage.GEORGIAN, "Georgian");
-        codeToName.put(TranslateLanguage.KANNADA, "Kannada");
-        codeToName.put(TranslateLanguage.MARATHI, "Marathi");
-        codeToName.put(TranslateLanguage.MALTESE, "Maltese");
-        codeToName.put(TranslateLanguage.TAMIL, "Tamil");
-        codeToName.put(TranslateLanguage.TELUGU, "Telugu");
-        codeToName.put(TranslateLanguage.TAGALOG, "Tagalog");
-        codeToName.put(TranslateLanguage.URDU, "Urdu");
-    }
-
-    // Khởi tạo trình phiên dịch
     private void setupTranslator() {
-        if (translator != null) {
-            translator.close();
-        }
+        textTranslator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
+            @Override
+            public void onModelReady() {
+                Log.d("CameraFragment", "Mô hình dịch sẵn sàng: " + sourceLangName + " -> " + targetLangName);
+                Toast.makeText(requireContext(), "Mô hình dịch đã tải xong!", Toast.LENGTH_SHORT).show();
+            }
 
-        TranslatorOptions options = new TranslatorOptions.Builder()
-                .setSourceLanguage(sourceLang)
-                .setTargetLanguage(targetLang)
-                .build();
-        translator = Translation.getClient(options);
+            @Override
+            public void onModelDownloadFailed(String error) {
+                Log.e("CameraFragment", "Lỗi tải mô hình dịch: " + error);
+                Toast.makeText(requireContext(), "Lỗi tải mô hình dịch: " + error, Toast.LENGTH_LONG).show();
+            }
 
-        Toast.makeText(requireContext(), "Đang tải mô hình dịch...", Toast.LENGTH_SHORT).show();
+            @Override
+            public void onTranslationSuccess(String translatedText) {
+                Log.d("CameraFragment", "Văn bản dịch: " + translatedText);
+                tvTranslatedText.setText("Văn bản dịch: " + translatedText);
+            }
 
-        DownloadConditions conditions = new DownloadConditions.Builder()
-                .build();
-        translator.downloadModelIfNeeded(conditions)
-                .addOnSuccessListener(v -> {
-                    Log.d("CameraFragment", "Mô hình dịch sẵn sàng: " + codeToName.get(sourceLang) + " -> " + codeToName.get(targetLang));
-                    Toast.makeText(requireContext(), "Mô hình dịch đã tải xong!", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("CameraFragment", "Lỗi tải mô hình dịch: " + e.getMessage(), e);
-                    Toast.makeText(requireContext(), "Lỗi tải mô hình dịch: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+            @Override
+            public void onTranslationFailed(String errorMessage) {
+                Log.e("CameraFragment", "Lỗi dịch: " + errorMessage);
+                tvTranslatedText.setText("Văn bản dịch: Lỗi dịch văn bản");
+                Toast.makeText(requireContext(), "Lỗi dịch: " + errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    // Cập nhật ngôn ngữ từ spinner
+    // Cập nhật ngôn ngữ
     public void updateLanguages(Bundle bundle) {
-        String newSourceLang = bundle.getString("sourceLang", TranslateLanguage.ENGLISH);
-        String newTargetLang = bundle.getString("targetLang", TranslateLanguage.VIETNAMESE);
+        String newSourceLang = bundle.getString("sourceLang", "en");
+        String newTargetLang = bundle.getString("targetLang", "vi");
+        String newSourceLangName = bundle.getString("sourceLangName", "English");
+        String newTargetLangName = bundle.getString("targetLangName", "Vietnamese");
 
         if (!newSourceLang.equals(sourceLang) || !newTargetLang.equals(targetLang)) {
-            Log.d("CameraFragment", "Cập nhật ngôn ngữ từ " + codeToName.get(sourceLang) + " -> " + codeToName.get(targetLang) +
-                    " thành " + codeToName.get(newSourceLang) + " -> " + codeToName.get(newTargetLang));
+            Log.d("CameraFragment", "Cập nhật ngôn ngữ từ " + sourceLangName + " -> " + targetLangName +
+                    " thành " + newSourceLangName + " -> " + newTargetLangName);
             sourceLang = newSourceLang;
             targetLang = newTargetLang;
-            setupTranslator();
+            sourceLangName = newSourceLangName;
+            targetLangName = newTargetLangName;
+            if (textTranslator != null) {
+                textTranslator.close(); // Đóng translator cũ
+            }
+            setupTranslator(); // Khởi tạo translator mới
             tvTranslatedText.setText("Văn bản dịch: ");
             tvOriginalText.setText("Văn bản gốc: ");
-        } else {
-            Log.d("CameraFragment", "Ngôn ngữ không thay đổi: " + codeToName.get(sourceLang) + " -> " + codeToName.get(targetLang));
         }
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -315,7 +265,16 @@ public class CameraFragment extends Fragment {
                 return;
             }
 
-            InputImage image = InputImage.fromBitmap(bitmap, 0);
+            // Tiền xử lý ảnh
+            Bitmap processedBitmap = preprocessImage(bitmap);
+            if (processedBitmap == null) {
+                Log.e("CameraFragment", "Lỗi tiền xử lý ảnh");
+                Toast.makeText(requireContext(), "Lỗi tiền xử lý ảnh", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Lấy góc xoay từ EXIF
+            int rotationDegrees = getRotationDegrees(photoFile.getAbsolutePath());
+            InputImage image = InputImage.fromBitmap(bitmap, rotationDegrees);
             TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
             recognizer.process(image)
@@ -324,7 +283,31 @@ public class CameraFragment extends Fragment {
                         if (!recognizedText.trim().isEmpty()) {
                             Log.d("CameraFragment", "Văn bản nhận diện: " + recognizedText);
                             tvOriginalText.setText("Văn bản gốc: " + recognizedText);
-                            translateText(recognizedText);
+                            textTranslator.translateText(recognizedText, new TextTranslator.TranslationCallback() {
+                                @Override
+                                public void onModelReady() {
+                                    // Không cần xử lý lại vì đã xử lý trong setupTranslator
+                                }
+
+                                @Override
+                                public void onModelDownloadFailed(String error) {
+                                    Log.e("CameraFragment", "Lỗi tải mô hình dịch: " + error);
+                                    Toast.makeText(requireContext(), "Lỗi tải mô hình dịch: " + error, Toast.LENGTH_LONG).show();
+                                }
+
+                                @Override
+                                public void onTranslationSuccess(String translatedText) {
+                                    Log.d("CameraFragment", "Văn bản dịch: " + translatedText);
+                                    tvTranslatedText.setText("Văn bản dịch: " + translatedText);
+                                }
+
+                                @Override
+                                public void onTranslationFailed(String errorMessage) {
+                                    Log.e("CameraFragment", "Lỗi dịch: " + errorMessage);
+                                    tvTranslatedText.setText("Văn bản dịch: Lỗi dịch văn bản");
+                                    Toast.makeText(requireContext(), "Lỗi dịch: " + errorMessage, Toast.LENGTH_SHORT).show();
+                                }
+                            });
                         } else {
                             Log.d("CameraFragment", "Không tìm thấy văn bản trong ảnh");
                             tvOriginalText.setText("Văn bản gốc: Không tìm thấy văn bản");
@@ -396,20 +379,6 @@ public class CameraFragment extends Fragment {
             Log.e("CameraFragment", "Lỗi đọc EXIF: " + e.getMessage());
             return 0;
         }
-    }
-
-    private void translateText(String text) {
-        Log.d("CameraFragment", "Dịch văn bản: " + text + " từ " + codeToName.get(sourceLang) + " sang " + codeToName.get(targetLang));
-        translator.translate(text)
-                .addOnSuccessListener(translatedText -> {
-                    Log.d("CameraFragment", "Văn bản dịch: " + translatedText);
-                    tvTranslatedText.setText("Văn bản dịch: " + translatedText);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("CameraFragment", "Lỗi dịch: " + e.getMessage(), e);
-                    tvTranslatedText.setText("Văn bản dịch: Lỗi dịch văn bản");
-                    Toast.makeText(requireContext(), "Lỗi dịch: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
     }
 
     @Override
