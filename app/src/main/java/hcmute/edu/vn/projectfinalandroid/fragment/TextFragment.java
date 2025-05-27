@@ -40,6 +40,7 @@ public class TextFragment extends Fragment {
     private TextTranslator translator;
     private AppDatabase db;
     private ImageButton btnHistory;
+    private EditText inputText;
 
     @Nullable
     @Override
@@ -48,61 +49,37 @@ public class TextFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_text, container, false);
 
-        EditText inputText = view.findViewById(R.id.inputText);
+        inputText = view.findViewById(R.id.inputText);
         outputText = view.findViewById(R.id.outputText);
         btnHistory = view.findViewById(R.id.btnViewHistory);
-        //khởi tạo database
+        // Khởi tạo database
         db = AppDatabase.getInstance(requireContext());
-        //lấy tham số được guwir từ main activity
+        // Lấy tham số từ Bundle
         Bundle args = getArguments();
         sourceLang = (args != null) ? args.getString("sourceLang", "en") : "en";
         targetLang = (args != null) ? args.getString("targetLang", "vi") : "vi";
-        //lấy id ngời dùng
+        // Lấy ID người dùng
         SharedPreferences prefs = requireActivity().getSharedPreferences("MyApp", Context.MODE_PRIVATE);
         int userId = prefs.getInt("userId", -1);
-        Log.d("userId", "Current user ID = " + userId);
+        Log.d("TextFragment", "Current user ID = " + userId);
         if (userId == -1) {
-            //quay về trang đăng nhajap
+            // Quay về trang đăng nhập
             Intent intent = new Intent(getActivity(), MainActivity.class);
             startActivity(intent);
         }
 
-
         outputText.setText("Downloading model...");
 
-        // Khởi tạo translator - để truyền callback xử lý
-        translator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
-            //khi model dịch được tải xong -> sẵn sàng để dịch
-            @Override
-            public void onModelReady() {
-                outputText.setText("Ready to translate");
-            }
-            //tải thất bại
-            @Override
-            public void onModelDownloadFailed(String error) {
-                outputText.setText("Download failed: " + error);
-            }
-            //dịch thành công -> gắn output = vban được dịch
-            @Override
-            public void onTranslationSuccess(String translatedText) {
-                outputText.setText(translatedText);
-            }
-            // dịch thất bại
-            @Override
-            public void onTranslationFailed(String errorMessage) {
-                outputText.setText("Translation error: " + errorMessage);
-            }
-        });
+        // Khởi tạo translator
+        setupTranslator();
 
         // Lắng nghe nhập văn bản
-        // sử dụng textwatcher để theo dõi người dùng gõ -> dịch theo thời gian thực
         inputText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override
             public void afterTextChanged(Editable s) {
                 String text = s.toString();
-
                 if (text.isEmpty()) {
                     outputText.setText("");
                     return;
@@ -119,7 +96,7 @@ public class TextFragment extends Fragment {
                         outputText.setText(translatedText);
                         new Thread(() -> {
                             db.historyDAO().insert(
-                                    new History(userId,inputText.getText().toString(), translatedText, System.currentTimeMillis())
+                                    new History(userId, inputText.getText().toString(), translatedText, System.currentTimeMillis())
                             );
                         }).start();
                     }
@@ -128,14 +105,14 @@ public class TextFragment extends Fragment {
                     }
                 });
 
-                handler.postDelayed(translateRunnable, 2000); // delay 500ms để tránh dịch quá nhiều khi người dùng đang gõ
+                handler.postDelayed(translateRunnable, 2000); // Delay 2s để tránh dịch quá nhiều
             }
         });
-        //nút xem lịch sử tra cứu của người dùng
+
+        // Nút xem lịch sử
         btnHistory.setOnClickListener(v -> {
             new Thread(() -> {
                 List<History> historyList = db.historyDAO().getHistoryByUserId(userId);
-
                 requireActivity().runOnUiThread(() -> {
                     if (historyList.isEmpty()) {
                         new AlertDialog.Builder(requireContext())
@@ -146,11 +123,9 @@ public class TextFragment extends Fragment {
                     } else {
                         LayoutInflater inflater1 = LayoutInflater.from(requireContext());
                         View dialogView = inflater1.inflate(R.layout.dialog_history, null);
-
                         ListView listView = dialogView.findViewById(R.id.listViewHistory);
                         HistoryAdapter adapter = new HistoryAdapter(requireContext(), historyList);
                         listView.setAdapter(adapter);
-
                         new AlertDialog.Builder(requireContext())
                                 .setTitle("Lịch sử dịch")
                                 .setView(dialogView)
@@ -162,6 +137,59 @@ public class TextFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void setupTranslator() {
+        // Đóng translator cũ nếu tồn tại
+        if (translator != null) {
+            translator.close();
+        }
+
+        translator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
+            @Override
+            public void onModelReady() {
+                outputText.setText("Ready to translate");
+            }
+            @Override
+            public void onModelDownloadFailed(String error) {
+                outputText.setText("Download failed: " + error);
+            }
+            @Override
+            public void onTranslationSuccess(String translatedText) {
+                outputText.setText(translatedText);
+            }
+            @Override
+            public void onTranslationFailed(String errorMessage) {
+                outputText.setText("Translation error: " + errorMessage);
+            }
+        });
+    }
+
+    // Thêm phương thức updateLanguages
+    public void updateLanguages(Bundle bundle) {
+        String newSourceLang = bundle.getString("sourceLang", "en");
+        String newTargetLang = bundle.getString("targetLang", "vi");
+
+        if (!newSourceLang.equals(sourceLang) || !newTargetLang.equals(targetLang)) {
+            sourceLang = newSourceLang;
+            targetLang = newTargetLang;
+            Log.d("TextFragment", "Cập nhật ngôn ngữ: " + sourceLang + " -> " + targetLang);
+            setupTranslator();
+            // Dịch lại văn bản hiện tại nếu có
+            String currentText = inputText.getText().toString();
+            if (!currentText.isEmpty()) {
+                translator.translateText(currentText, new TextTranslator.TranslationCallback() {
+                    @Override public void onModelReady() {}
+                    @Override public void onModelDownloadFailed(String error) {}
+                    @Override public void onTranslationSuccess(String translatedText) {
+                        outputText.setText(translatedText);
+                    }
+                    @Override public void onTranslationFailed(String errorMessage) {
+                        outputText.setText(errorMessage);
+                    }
+                });
+            }
+        }
     }
 
     @Override

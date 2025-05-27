@@ -28,9 +28,9 @@ import hcmute.edu.vn.projectfinalandroid.fragment.TextFragment;
 
 public class HomeActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    private Spinner spSourceLang, spTargetLang; //spiner để hiện ds các ngôn ngữ cho người dùng chọn
-    private Map<String, String> languageMap; // ánh xạ tên ngôn ngữ sang mã ML Kit
-    private List<String> languageNames; // danh sách tên ngôn ngữ để hiển thị
+    private Spinner spSourceLang, spTargetLang;
+    private Map<String, String> languageMap;
+    private List<String> languageNames;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,10 +38,9 @@ public class HomeActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.tab_layout);
 
-        // khởi tạo danh sách để lấy ds ngôn ngữ được hỗ trợ từ mlkit
+        // Khởi tạo danh sách ngôn ngữ
         languageMap = new HashMap<>();
         languageNames = new ArrayList<>();
-        //khởi tạo ds ngôn ngữ
         initializeLanguageList();
 
         // Khởi tạo các thành phần
@@ -49,32 +48,32 @@ public class HomeActivity extends AppCompatActivity {
         spTargetLang = findViewById(R.id.spTargetLang);
         ImageButton btnSwapLang = findViewById(R.id.btnSwapLang);
 
-        // tạo adapter cho Spinner
+        // Tạo adapter cho Spinner
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languageNames);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-        // gán adapter cho Spinner để hiển thị languageNames trên Spinner.
+        // Gán adapter cho Spinner
         spSourceLang.setAdapter(adapter);
         spTargetLang.setAdapter(adapter);
 
-        // thiết lập giá trị mặc định
+        // Thiết lập giá trị mặc định
         spSourceLang.setSelection(languageNames.indexOf("English"));
         spTargetLang.setSelection(languageNames.indexOf("Vietnamese"));
 
-        // xử lý nút hoán đổi ngôn ngữ
+        // Xử lý nút hoán đổi ngôn ngữ
         btnSwapLang.setOnClickListener(v -> {
             int sourcePos = spSourceLang.getSelectedItemPosition();
             int targetPos = spTargetLang.getSelectedItemPosition();
             spSourceLang.setSelection(targetPos);
             spTargetLang.setSelection(sourcePos);
-            replaceFragmentWithLanguages();
+            updateCurrentFragmentWithLanguages();
         });
 
         // Xử lý khi chọn ngôn ngữ trong Spinner
         spSourceLang.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                replaceFragmentWithLanguages();
+                updateCurrentFragmentWithLanguages();
             }
 
             @Override
@@ -84,7 +83,7 @@ public class HomeActivity extends AppCompatActivity {
         spTargetLang.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                replaceFragmentWithLanguages();
+                updateCurrentFragmentWithLanguages();
             }
 
             @Override
@@ -100,28 +99,36 @@ public class HomeActivity extends AppCompatActivity {
         tabLayout.addTab(tabLayout.newTab().setText("Chat").setIcon(R.drawable.chatbox));
         tabLayout.addTab(tabLayout.newTab().setText("Personal").setIcon(R.drawable.user));
 
-        // Hiển thị fragment mặc định
+        // Hiển thị TextFragment mặc định
         replaceFragmentWithLanguages();
 
         // Xử lý sự kiện khi chọn tab
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
+                Fragment fragment;
                 switch (tab.getPosition()) {
                     case 0:
-                        replaceFragmentWithLanguages();
+                        fragment = new TextFragment();
                         break;
                     case 1:
-                        replaceFragment(new CameraFragment());
+                        fragment = new CameraFragment();
                         break;
                     case 2:
-                        replaceFragment(new ChatFragment());
+                        fragment = new ChatFragment();
                         break;
                     case 3:
-                        replaceFragment(new PersonalFragment());
+                        fragment = new PersonalFragment();
                         break;
+                    default:
+                        return;
                 }
+                // Gán ngôn ngữ cho fragment mới
+                Bundle bundle = createLanguageBundle();
+                fragment.setArguments(bundle);
+                replaceFragment(fragment);
             }
+
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {}
 
@@ -144,9 +151,7 @@ public class HomeActivity extends AppCompatActivity {
         languageNames.sort(String::compareTo);
     }
 
-
     private String languageCodeToName(String code) {
-        // Ánh xạ mã ngôn ngữ sang tên dễ đọc
         Map<String, String> codeToName = new HashMap<>();
         codeToName.put(TranslateLanguage.AFRIKAANS, "Afrikaans");
         codeToName.put(TranslateLanguage.ALBANIAN, "Albanian");
@@ -210,21 +215,39 @@ public class HomeActivity extends AppCompatActivity {
 
         return codeToName.getOrDefault(code, code);
     }
-    //cập nhật fragment với ngôn ngữ đã chọn
-    private void replaceFragmentWithLanguages() {
+
+    private Bundle createLanguageBundle() {
         String sourceLang = (String) spSourceLang.getSelectedItem();
         String targetLang = (String) spTargetLang.getSelectedItem();
-        // Ánh xạ sang mã ngôn ngữ ML Kit
         String sourceLangCode = languageMap.get(sourceLang);
         String targetLangCode = languageMap.get(targetLang);
 
-        // Tạo Bundle để gửi ngôn ngữ
         Bundle bundle = new Bundle();
         bundle.putString("sourceLang", sourceLangCode);
         bundle.putString("targetLang", targetLangCode);
+        return bundle;
+    }
 
-        // Tạo và thay thế TextFragment
+    private void updateCurrentFragmentWithLanguages() {
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragmentContainer);
+        if (currentFragment != null) {
+            Bundle bundle = createLanguageBundle();
+            currentFragment.setArguments(bundle);
+            if (currentFragment instanceof CameraFragment) {
+                ((CameraFragment) currentFragment).updateLanguages(bundle);
+            } else if (currentFragment instanceof TextFragment) {
+                ((TextFragment) currentFragment).updateLanguages(bundle);
+            }
+            Log.d(TAG, "Cập nhật ngôn ngữ cho fragment hiện tại: " + currentFragment.getClass().getSimpleName());
+        } else {
+            // Hiển thị TextFragment mặc định nếu không có fragment
+            replaceFragmentWithLanguages();
+        }
+    }
+
+    private void replaceFragmentWithLanguages() {
         TextFragment fragment = new TextFragment();
+        Bundle bundle = createLanguageBundle();
         fragment.setArguments(bundle);
         replaceFragment(fragment);
     }
