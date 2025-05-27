@@ -30,31 +30,16 @@ import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import com.google.cloud.vision.v1.AnnotateImageRequest;
-import com.google.cloud.vision.v1.AnnotateImageResponse;
-import com.google.cloud.vision.v1.BatchAnnotateImagesResponse;
-import com.google.cloud.vision.v1.Feature;
-import com.google.cloud.vision.v1.Image;
-import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.nl.translate.TranslateLanguage;
-import com.google.mlkit.nl.translate.Translation;
-import com.google.mlkit.nl.translate.Translator;
-import com.google.mlkit.nl.translate.TranslatorOptions;
+
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import com.google.protobuf.ByteString;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
@@ -65,7 +50,6 @@ public class CameraFragment extends Fragment {
     private TextView tvOriginalText; // văn bản gốc
     private TextView tvTranslatedText; // văn bản dịch
     private TextTranslator textTranslator; // Dùng lớp TextTranslator để dịch văn bản
-    private Translator translator; // Mô hình dịch thuật
     private String sourceLang; // Ngôn ngữ gốc
     private String targetLang; // Ngôn ngữ dịch
     private String sourceLangName; // Tên của ngôn ngữ gốc
@@ -83,21 +67,8 @@ public class CameraFragment extends Fragment {
         tvOriginalText = view.findViewById(R.id.tvOriginalText);
         tvTranslatedText = view.findViewById(R.id.tvTranslatedText);
 
-        // Lấy ngôn ngữ gốc và ngôn ngữ dịch từ Bundle (HomeActivity truyền xuống)
-        Bundle args = getArguments();
-        if (args != null && args.containsKey("sourceLang") && args.containsKey("targetLang")) {
-            sourceLang = args.getString("sourceLang");
-            targetLang = args.getString("targetLang");
-            sourceLangName = args.getString("sourceLangName", "Unknown"); // Lấy tên ngôn ngữ
-            targetLangName = args.getString("targetLangName", "Unknown"); // Lấy tên ngôn ngữ
-            Log.d("CameraFragment", "Nhận ngôn ngữ từ Bundle: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
-        } else { // Nếu không lấy được thì mặc định là từ tiếng anh -> tiếng việt
-            sourceLang = TranslateLanguage.ENGLISH;
-            targetLang = TranslateLanguage.VIETNAMESE;
-            sourceLangName = "English";
-            targetLangName = "Vietnamese";
-            Log.d("CameraFragment", "Không có Bundle hoặc thiếu dữ liệu, dùng mặc định: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
-        }
+        // Khởi tạo ngôn ngữ
+        initializeLanguages(getArguments());
 
         // Khởi tạo TextTranslator
         setupTranslator();
@@ -122,6 +93,37 @@ public class CameraFragment extends Fragment {
         });
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            Log.d("CameraFragment", "Quyền camera được cấp");
+            previewView.post(() -> startCamera());
+        } else {
+            Log.w("CameraFragment", "Quyền camera bị từ chối");
+            Toast.makeText(requireContext(), "Cần cấp quyền camera", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Khởi tạo ngôn ngữ
+    private void initializeLanguages(Bundle args) {
+        if (args != null && args.containsKey("sourceLang") && args.containsKey("targetLang")) {
+            sourceLang = args.getString("sourceLang");
+            targetLang = args.getString("targetLang");
+            sourceLangName = args.getString("sourceLangName", "Unknown");
+            targetLangName = args.getString("targetLangName", "Unknown");
+            Log.d("CameraFragment", "Nhận ngôn ngữ từ Bundle: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
+        } else { // Nếu Bundle không có dữ liệu thì mặc định là dịch tiếng anh -> tiếng việt
+            sourceLang = TranslateLanguage.ENGLISH;
+            targetLang = TranslateLanguage.VIETNAMESE;
+            sourceLangName = "English";
+            targetLangName = "Vietnamese";
+            Log.d("CameraFragment", "Không có Bundle hoặc thiếu dữ liệu, dùng mặc định: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
+        }
+    }
+
+    // Khởi tạo hàm dịch văn bản
+    // Lấy hàm từ TextTranslator để dịch văn bản
     private void setupTranslator() {
         textTranslator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
             @Override
@@ -151,42 +153,7 @@ public class CameraFragment extends Fragment {
         });
     }
 
-    // Cập nhật ngôn ngữ
-    public void updateLanguages(Bundle bundle) {
-        String newSourceLang = bundle.getString("sourceLang", "en");
-        String newTargetLang = bundle.getString("targetLang", "vi");
-        String newSourceLangName = bundle.getString("sourceLangName", "English");
-        String newTargetLangName = bundle.getString("targetLangName", "Vietnamese");
-
-        if (!newSourceLang.equals(sourceLang) || !newTargetLang.equals(targetLang)) {
-            Log.d("CameraFragment", "Cập nhật ngôn ngữ từ " + sourceLangName + " -> " + targetLangName +
-                    " thành " + newSourceLangName + " -> " + newTargetLangName);
-            sourceLang = newSourceLang;
-            targetLang = newTargetLang;
-            sourceLangName = newSourceLangName;
-            targetLangName = newTargetLangName;
-            if (textTranslator != null) {
-                textTranslator.close(); // Đóng translator cũ
-            }
-            setupTranslator(); // Khởi tạo translator mới
-            tvTranslatedText.setText("Văn bản dịch: ");
-            tvOriginalText.setText("Văn bản gốc: ");
-        }
-    }
-
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_PERMISSION_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            Log.d("CameraFragment", "Quyền camera được cấp");
-            previewView.post(() -> startCamera());
-        } else {
-            Log.w("CameraFragment", "Quyền camera bị từ chối");
-            Toast.makeText(requireContext(), "Cần cấp quyền camera", Toast.LENGTH_SHORT).show();
-        }
-    }
-
+    // Sau khi đã có quyền thì mở camera lên
     private void startCamera() {
         Log.d("CameraFragment", "Bắt đầu khởi động camera");
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
@@ -234,6 +201,7 @@ public class CameraFragment extends Fragment {
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
+    // Xử lý nút chụp ảnh
     private void takePhoto() {
         Log.d("CameraFragment", "Chụp ảnh");
         File photoFile = new File(requireContext().getExternalFilesDir(null), "photo.jpg");
@@ -381,12 +349,32 @@ public class CameraFragment extends Fragment {
         }
     }
 
+    // Cập nhật ngôn ngữ khi thay đổi ngôn ngữ trên spinner của HomeActivity
+    public void updateLanguages(Bundle bundle) {
+        String newSourceLang = bundle.getString("sourceLang", "en");
+        String newTargetLang = bundle.getString("targetLang", "vi");
+        String newSourceLangName = bundle.getString("sourceLangName", "English");
+        String newTargetLangName = bundle.getString("targetLangName", "Vietnamese");
+
+        if (!newSourceLang.equals(sourceLang) || !newTargetLang.equals(targetLang)) {
+            Log.d("CameraFragment", "Cập nhật ngôn ngữ từ " + sourceLangName + " -> " + targetLangName +
+                    " thành " + newSourceLangName + " -> " + newTargetLangName);
+            sourceLang = newSourceLang;
+            targetLang = newTargetLang;
+            sourceLangName = newSourceLangName;
+            targetLangName = newTargetLangName;
+            if (textTranslator != null) {
+                textTranslator.close(); // Đóng translator cũ
+            }
+            setupTranslator(); // Khởi tạo translator mới
+            tvTranslatedText.setText("Văn bản dịch: ");
+            tvOriginalText.setText("Văn bản gốc: ");
+        }
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (translator != null) {
-            translator.close();
-        }
         Log.d("CameraFragment", "Đóng CameraFragment");
     }
 }
