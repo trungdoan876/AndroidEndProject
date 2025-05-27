@@ -19,7 +19,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
-import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,6 +30,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.camera.core.AspectRatio;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
@@ -58,25 +58,25 @@ import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
 
 public class CameraFragment extends Fragment {
-    private PreviewView previewView; // Nơi hiện màn hình camera
-    private ImageCapture imageCapture; // Ảnh chụp để nhận diện văn bản
-    private ImageView capturedImageView; // Hiển thị ảnh đã chụp
-    private GraphicOverlay graphicOverlay; // Vẽ khung văn bản
-    private TextView tvOriginalText; // văn bản gốc
-    private TextView tvTranslatedText; // văn bản dịch
+    private PreviewView previewView; // Camera preview
+    private ImageCapture imageCapture; // For capturing images
+    private ImageView capturedImageView; // Displays captured image
+    private GraphicOverlay graphicOverlay; // Draws text bounding boxes
+    private TextView tvOriginalText; // Original text
+    private TextView tvTranslatedText; // Translated text
     private BottomSheetBehavior<LinearLayout> bottomSheetBehavior; // Bottom sheet control
-    private TextTranslator textTranslator; // Dùng lớp TextTranslator để dịch văn bản
-    private String sourceLang; // Ngôn ngữ gốc
-    private String targetLang; // Ngôn ngữ dịch
-    private String sourceLangName; // Tên của ngôn ngữ gốc
-    private String targetLangName; // Tên của ngôn ngữ dịch
-    private ImageButton btnCapture; // Nút chụp ảnh
-    private ImageButton btnUpload; // Nút tải ảnh
-    private static final int CAMERA_PERMISSION_CODE = 100; // Biến kiểm tra quyền camera
-    private static final int STORAGE_PERMISSION_CODE = 101; // Biến kiểm tra quyền bộ nhớ
-    private static final int PICK_IMAGE_REQUEST = 102; // Request code chọn ảnh
-    private static final int TARGET_IMAGE_SIZE = 800; // Kích thước tối đa sau khi resize hình chụp
-    private List<Text.TextBlock> textBlocks; // Lưu các khối văn bản nhận diện
+    private TextTranslator textTranslator; // Text translation
+    private String sourceLang; // Source language
+    private String targetLang; // Target language
+    private String sourceLangName; // Source language name
+    private String targetLangName; // Target language name
+    private ImageButton btnCapture; // Capture button
+    private ImageButton btnUpload; // Upload button
+    private static final int CAMERA_PERMISSION_CODE = 100; // Camera permission code
+    private static final int STORAGE_PERMISSION_CODE = 101; // Storage permission code
+    private static final int PICK_IMAGE_REQUEST = 102; // Image picker request code
+    private static final int TARGET_IMAGE_SIZE = 800; // Max size for processed image
+    private List<Text.TextBlock> textBlocks; // Recognized text blocks
     private static final String TAG = "CameraFragment";
 
     @Nullable
@@ -85,7 +85,7 @@ public class CameraFragment extends Fragment {
         Log.d(TAG, "onCreateView: Initializing view");
         View view = inflater.inflate(R.layout.fragment_camera, container, false);
 
-        // Ánh xạ UI
+        // Initialize UI components
         previewView = view.findViewById(R.id.previewView);
         capturedImageView = view.findViewById(R.id.capturedImageView);
         graphicOverlay = view.findViewById(R.id.graphicOverlay);
@@ -96,19 +96,19 @@ public class CameraFragment extends Fragment {
         LinearLayout bottomSheet = view.findViewById(R.id.bottomSheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
 
-        // Khởi tạo ngôn ngữ
+        // Initialize languages
         initializeLanguages(getArguments());
 
-        // Khởi tạo TextTranslator
+        // Set up translator
         setupTranslator();
 
-        // Tạo event cho nút chụp
+        // Set up capture button
         btnCapture.setOnClickListener(v -> takePhoto());
 
-        // Tạo event cho nút upload
+        // Set up upload button
         btnUpload.setOnClickListener(v -> openImagePicker());
 
-        // Xử lý bottom sheet
+        // Bottom sheet callback
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -121,7 +121,7 @@ public class CameraFragment extends Fragment {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                // Xử lý khi kéo bottom sheet
+                // Handle bottom sheet sliding
             }
         });
 
@@ -133,7 +133,7 @@ public class CameraFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG, "onViewCreated: Checking camera permission");
 
-        // Kiểm tra quyền camera
+        // Check camera permission
         previewView.post(() -> {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 startCamera();
@@ -149,22 +149,22 @@ public class CameraFragment extends Fragment {
         Log.d(TAG, "onRequestPermissionsResult: requestCode=" + requestCode);
         if (requestCode == CAMERA_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Quyền camera được cấp");
+                Log.d(TAG, "Camera permission granted");
                 previewView.post(() -> startCamera());
             } else {
-                Log.w(TAG, "Quyền camera bị từ chối");
-                Toast.makeText(requireContext(), "Cần quyền camera để sử dụng tính năng này", Toast.LENGTH_LONG).show();
+                Log.w(TAG, "Camera permission denied");
+                Toast.makeText(requireContext(), "Camera permission required for this feature", Toast.LENGTH_LONG).show();
             }
         } else if (requestCode == STORAGE_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Quyền bộ nhớ được cấp");
+                Log.d(TAG, "Storage permission granted");
                 openImagePicker();
             } else {
-                Log.w(TAG, "Quyền bộ nhớ bị từ chối");
-                Toast.makeText(requireContext(), "Cần quyền truy cập bộ nhớ để chọn ảnh", Toast.LENGTH_LONG).show();
+                Log.w(TAG, "Storage permission denied");
+                Toast.makeText(requireContext(), "Storage permission required to select images", Toast.LENGTH_LONG).show();
                 if (!shouldShowRequestPermissionRationale(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
                         Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                    Toast.makeText(requireContext(), "Vui lòng cấp quyền bộ nhớ trong cài đặt ứng dụng", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "Please grant storage permission in app settings", Toast.LENGTH_LONG).show();
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                     Uri uri = Uri.fromParts("package", requireContext().getPackageName(), null);
                     intent.setData(uri);
@@ -186,90 +186,87 @@ public class CameraFragment extends Fragment {
                     processImage(bitmap);
                 } else {
                     Log.e(TAG, "Bitmap is null");
-                    Toast.makeText(requireContext(), "Không thể tải ảnh", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Failed to load image", Toast.LENGTH_SHORT).show();
                 }
             } catch (IOException e) {
-                Log.e(TAG, "Lỗi đọc ảnh từ bộ nhớ: " + e.getMessage());
-                Toast.makeText(requireContext(), "Lỗi đọc ảnh", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Error reading image from storage: " + e.getMessage());
+                Toast.makeText(requireContext(), "Error reading image", Toast.LENGTH_SHORT).show();
             }
         } else {
             Log.w(TAG, "Image picking failed: requestCode=" + requestCode + ", resultCode=" + resultCode);
-            Toast.makeText(requireContext(), "Không thể chọn ảnh", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Failed to select image", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // Khởi tạo ngôn ngữ
     private void initializeLanguages(Bundle args) {
         if (args != null && args.containsKey("sourceLang") && args.containsKey("targetLang")) {
             sourceLang = args.getString("sourceLang");
             targetLang = args.getString("targetLang");
             sourceLangName = args.getString("sourceLangName", "Unknown");
             targetLangName = args.getString("targetLangName", "Unknown");
-            Log.d(TAG, "Nhận ngôn ngữ từ Bundle: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
-        } else { // Nếu Bundle không có dữ liệu thì mặc định là dịch tiếng anh -> tiếng việt
+            Log.d(TAG, "Received languages from Bundle: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
+        } else {
             sourceLang = TranslateLanguage.ENGLISH;
             targetLang = TranslateLanguage.VIETNAMESE;
             sourceLangName = "English";
             targetLangName = "Vietnamese";
-            Log.d(TAG, "Không có Bundle hoặc thiếu dữ liệu, dùng mặc định: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
+            Log.d(TAG, "No Bundle or missing data, using default: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
         }
     }
 
-    // Khởi tạo hàm dịch văn bản
     private void setupTranslator() {
         textTranslator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
             @Override
             public void onModelReady() {
-                Log.d(TAG, "Mô hình dịch sẵn sàng: " + sourceLangName + " -> " + targetLangName);
-                Toast.makeText(requireContext(), "Mô hình dịch đã tải xong!", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Translation model ready: " + sourceLangName + " -> " + targetLangName);
+                Toast.makeText(requireContext(), "Translation model loaded!", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onModelDownloadFailed(String error) {
-                Log.e(TAG, "Lỗi tải mô hình dịch: " + error);
-                Toast.makeText(requireContext(), "Lỗi tải mô hình dịch: " + error, Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Translation model download failed: " + error);
+                Toast.makeText(requireContext(), "Translation model download error: " + error, Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onTranslationSuccess(String translatedText) {
-                Log.d(TAG, "Văn bản dịch: " + translatedText);
-                tvTranslatedText.setText("Văn bản dịch: " + translatedText);
+                Log.d(TAG, "Translated text: " + translatedText);
+                tvTranslatedText.setText("Translated text: " + translatedText);
             }
 
             @Override
             public void onTranslationFailed(String errorMessage) {
-                Log.e(TAG, "Lỗi dịch: " + errorMessage);
-                tvTranslatedText.setText("Văn bản dịch: Lỗi dịch văn bản");
-                Toast.makeText(requireContext(), "Lỗi dịch: " + errorMessage, Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Translation error: " + errorMessage);
+                tvTranslatedText.setText("Translated text: Translation error");
+                Toast.makeText(requireContext(), "Translation error: " + errorMessage, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    // Sau khi đã có quyền thì mở camera lên
     private void startCamera() {
-        Log.d(TAG, "Bắt đầu khởi động camera");
+        Log.d(TAG, "Starting camera");
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
 
         cameraProviderFuture.addListener(() -> {
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                Log.d(TAG, "CameraProvider đã sẵn sàng");
+                Log.d(TAG, "CameraProvider ready");
 
                 Preview preview = new Preview.Builder()
-                        .setTargetResolution(new Size(1920, 1080))
+                        .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                         .build();
                 CameraSelector cameraSelector = new CameraSelector.Builder()
                         .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                         .build();
 
                 imageCapture = new ImageCapture.Builder()
-                        .setTargetResolution(new Size(1920, 1080))
+                        .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                         .setJpegQuality(100)
                         .build();
 
                 if (previewView.getSurfaceProvider() == null) {
-                    Log.e(TAG, "SurfaceProvider của PreviewView là null");
-                    Toast.makeText(requireContext(), "Lỗi: PreviewView chưa sẵn sàng", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "PreviewView SurfaceProvider is null");
+                    Toast.makeText(requireContext(), "Error: PreviewView not ready", Toast.LENGTH_LONG).show();
                     return;
                 }
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
@@ -277,24 +274,24 @@ public class CameraFragment extends Fragment {
                 cameraProvider.unbindAll();
                 try {
                     cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, imageCapture);
-                    Log.d(TAG, "Camera được gắn kết thành công");
+                    Log.d(TAG, "Camera bound successfully");
                 } catch (Exception e) {
-                    Log.e(TAG, "Không thể sử dụng camera sau, thử camera trước", e);
+                    Log.e(TAG, "Failed to use back camera, trying front camera", e);
                     cameraSelector = new CameraSelector.Builder()
                             .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
                             .build();
                     cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview, imageCapture);
-                    Log.d(TAG, "Camera trước được gắn kết");
+                    Log.d(TAG, "Front camera bound");
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Lỗi khởi động camera: " + e.getMessage(), e);
-                Toast.makeText(requireContext(), "Lỗi khởi động camera: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Camera start error: " + e.getMessage(), e);
+                Toast.makeText(requireContext(), "Camera start error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
     private void takePhoto() {
-        Log.d(TAG, "Chụp ảnh");
+        Log.d(TAG, "Capturing photo");
         File photoFile = new File(requireContext().getExternalFilesDir(null), "photo.jpg");
 
         ImageCapture.OutputFileOptions outputOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
@@ -302,73 +299,77 @@ public class CameraFragment extends Fragment {
         imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(requireContext()), new ImageCapture.OnImageSavedCallback() {
             @Override
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults output) {
-                Log.d(TAG, "Ảnh đã được lưu: " + photoFile.getAbsolutePath());
-                // Get rotation from EXIF
+                Log.d(TAG, "Photo saved: " + photoFile.getAbsolutePath());
                 int rotationDegrees = getRotationDegrees(photoFile.getAbsolutePath());
                 Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
-                // Rotate the bitmap if needed
                 if (rotationDegrees != 0) {
                     bitmap = rotateBitmap(bitmap, rotationDegrees);
                 }
+                Log.d(TAG, "Captured image resolution: " + bitmap.getWidth() + "x" + bitmap.getHeight());
                 processImage(bitmap);
             }
 
             @Override
             public void onError(@NonNull ImageCaptureException exception) {
-                Log.e(TAG, "Lỗi khi chụp ảnh: " + exception.getMessage(), exception);
-                Toast.makeText(requireContext(), "Lỗi khi chụp ảnh", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Photo capture error: " + exception.getMessage(), exception);
+                Toast.makeText(requireContext(), "Photo capture error", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    // Helper method to rotate Bitmap
     private Bitmap rotateBitmap(Bitmap bitmap, int rotationDegrees) {
         Matrix matrix = new Matrix();
         matrix.postRotate(rotationDegrees);
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
-    // Mở trình chọn ảnh
     private void openImagePicker() {
         String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
                 Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
 
         if (ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED) {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT); // Use ACTION_GET_CONTENT
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("image/*");
-            startActivityForResult(Intent.createChooser(intent, "Chọn ảnh"), PICK_IMAGE_REQUEST);
+            startActivityForResult(Intent.createChooser(intent, "Select image"), PICK_IMAGE_REQUEST);
         } else {
             requestPermissions(new String[]{permission}, STORAGE_PERMISSION_CODE);
         }
     }
 
-    // Xử lý hình ảnh với Google Cloud Vision API
     private void processImage(Bitmap bitmap) {
         try {
             if (bitmap == null) {
-                Log.e(TAG, "Không thể đọc ảnh thành Bitmap");
-                Toast.makeText(requireContext(), "Lỗi đọc ảnh", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Failed to read image as Bitmap");
+                Toast.makeText(requireContext(), "Error reading image", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Tiền xử lý ảnh
+            // Preprocess image for text recognition
             Bitmap processedBitmap = preprocessImage(bitmap);
             if (processedBitmap == null) {
-                Log.e(TAG, "Lỗi tiền xử lý ảnh");
-                Toast.makeText(requireContext(), "Lỗi tiền xử lý ảnh", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Image preprocessing error");
+                Toast.makeText(requireContext(), "Image preprocessing error", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Hiển thị ảnh và ẩn camera
+            // Display original image and hide camera
             previewView.setVisibility(View.GONE);
-            capturedImageView.setImageBitmap(bitmap);
+            capturedImageView.setImageBitmap(bitmap); // Use original bitmap for display
             capturedImageView.setVisibility(View.VISIBLE);
             graphicOverlay.setVisibility(View.VISIBLE);
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             btnCapture.setVisibility(View.GONE);
             btnUpload.setVisibility(View.GONE);
 
-            InputImage image = InputImage.fromBitmap(bitmap, 0);
+            // Set dimensions for GraphicOverlay scaling
+            graphicOverlay.setImageDimensions(
+                    processedBitmap.getWidth(),
+                    processedBitmap.getHeight(),
+                    bitmap.getWidth(),
+                    bitmap.getHeight()
+            );
+
+            InputImage image = InputImage.fromBitmap(processedBitmap, 0);
             TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
             recognizer.process(image)
@@ -378,98 +379,86 @@ public class CameraFragment extends Fragment {
                             graphicOverlay.clear();
                             for (Text.TextBlock block : textBlocks) {
                                 graphicOverlay.add(new TextGraphic(graphicOverlay, block, text1 -> {
-                                    tvOriginalText.setText("Văn bản gốc: " + text1);
+                                    tvOriginalText.setText("Original text: " + text1);
                                     textTranslator.translateText(text1, new TextTranslator.TranslationCallback() {
                                         @Override
-                                        public void onModelReady() {
-                                            // Không cần xử lý lại vì đã xử lý trong setupTranslator
-                                        }
-
+                                        public void onModelReady() {}
                                         @Override
                                         public void onModelDownloadFailed(String error) {
-                                            Log.e(TAG, "Lỗi tải mô hình dịch: " + error);
-                                            Toast.makeText(requireContext(), "Lỗi tải mô hình dịch: " + error, Toast.LENGTH_LONG).show();
+                                            Log.e(TAG, "Translation model download error: " + error);
+                                            Toast.makeText(requireContext(), "Translation model download error: " + error, Toast.LENGTH_LONG).show();
                                         }
-
                                         @Override
                                         public void onTranslationSuccess(String translatedText) {
-                                            Log.d(TAG, "Văn bản dịch: " + translatedText);
-                                            tvTranslatedText.setText("Văn bản dịch: " + translatedText);
+                                            Log.d(TAG, "Translated text: " + translatedText);
+                                            tvTranslatedText.setText("Translated text: " + translatedText);
                                         }
-
                                         @Override
                                         public void onTranslationFailed(String errorMessage) {
-                                            Log.e(TAG, "Lỗi dịch: " + errorMessage);
-                                            tvTranslatedText.setText("Văn bản dịch: Lỗi dịch văn bản");
-                                            Toast.makeText(requireContext(), "Lỗi dịch: " + errorMessage, Toast.LENGTH_SHORT).show();
+                                            Log.e(TAG, "Translation error: " + errorMessage);
+                                            tvTranslatedText.setText("Translated text: Translation error");
+                                            Toast.makeText(requireContext(), "Translation error: " + errorMessage, Toast.LENGTH_SHORT).show();
                                         }
                                     });
                                 }));
                             }
-                            // Dịch khối văn bản đầu tiên mặc định
                             String firstText = textBlocks.get(0).getText();
-                            tvOriginalText.setText("Văn bản gốc: " + firstText);
+                            tvOriginalText.setText("Original text: " + firstText);
                             textTranslator.translateText(firstText, new TextTranslator.TranslationCallback() {
                                 @Override
-                                public void onModelReady() {
-                                    // Không cần xử lý lại vì đã xử lý trong setupTranslator
-                                }
-
+                                public void onModelReady() {}
                                 @Override
                                 public void onModelDownloadFailed(String error) {
-                                    Log.e(TAG, "Lỗi tải mô hình dịch: " + error);
-                                    Toast.makeText(requireContext(), "Lỗi tải mô hình dịch: " + error, Toast.LENGTH_LONG).show();
+                                    Log.e(TAG, "Translation model download error: " + error);
+                                    Toast.makeText(requireContext(), "Translation model download error: " + error, Toast.LENGTH_LONG).show();
                                 }
-
                                 @Override
                                 public void onTranslationSuccess(String translatedText) {
-                                    Log.d(TAG, "Văn bản dịch: " + translatedText);
-                                    tvTranslatedText.setText("Văn bản dịch: " + translatedText);
+                                    Log.d(TAG, "Translated text: " + translatedText);
+                                    tvTranslatedText.setText("Translated text: " + translatedText);
                                 }
-
                                 @Override
                                 public void onTranslationFailed(String errorMessage) {
-                                    Log.e(TAG, "Lỗi dịch: " + errorMessage);
-                                    tvTranslatedText.setText("Văn bản dịch: Lỗi dịch văn bản");
-                                    Toast.makeText(requireContext(), "Lỗi dịch: " + errorMessage, Toast.LENGTH_SHORT).show();
+                                    Log.e(TAG, "Translation error: " + errorMessage);
+                                    tvTranslatedText.setText("Translated text: Translation error");
+                                    Toast.makeText(requireContext(), "Translation error: " + errorMessage, Toast.LENGTH_SHORT).show();
                                 }
                             });
                         } else {
-                            Log.d(TAG, "Không tìm thấy văn bản trong ảnh");
-                            tvOriginalText.setText("Văn bản gốc: Không tìm thấy văn bản");
-                            tvTranslatedText.setText("Văn bản dịch: Không tìm thấy văn bản");
-                            Toast.makeText(requireContext(), "Không tìm thấy văn bản", Toast.LENGTH_SHORT).show();
+                            Log.d(TAG, "No text found in image");
+                            tvOriginalText.setText("Original text: No text found");
+                            tvTranslatedText.setText("Translated text: No text found");
+                            Toast.makeText(requireContext(), "No text found", Toast.LENGTH_SHORT).show();
                         }
                     })
                     .addOnFailureListener(e -> {
-                        Log.e(TAG, "Lỗi nhận diện: " + e.getMessage(), e);
-                        Toast.makeText(requireContext(), "Lỗi nhận diện: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "Text recognition error: " + e.getMessage(), e);
+                        Toast.makeText(requireContext(), "Text recognition error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
         } catch (Exception e) {
-            Log.e(TAG, "Lỗi xử lý ảnh: " + e.getMessage(), e);
-            Toast.makeText(requireContext(), "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Image processing error: " + e.getMessage(), e);
+            Toast.makeText(requireContext(), "Image processing error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    // Tiền xử lý ảnh (chuyển sang grayscale, resize, tăng độ tương phản)
     private Bitmap preprocessImage(Bitmap bitmap) {
         try {
-            // Resize ảnh để giảm kích thước
+            // Resize image while maintaining aspect ratio
             float scale = Math.min((float) TARGET_IMAGE_SIZE / bitmap.getWidth(), (float) TARGET_IMAGE_SIZE / bitmap.getHeight());
             Matrix scaleMatrix = new Matrix();
             scaleMatrix.postScale(scale, scale);
             Bitmap resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), scaleMatrix, true);
 
-            // Chuyển sang grayscale
+            // Convert to grayscale
             Bitmap grayscaleBitmap = Bitmap.createBitmap(resizedBitmap.getWidth(), resizedBitmap.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(grayscaleBitmap);
             Paint paint = new Paint();
             ColorMatrix colorMatrix = new ColorMatrix();
-            colorMatrix.setSaturation(0); // Chuyển sang grayscale
+            colorMatrix.setSaturation(0);
             paint.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
             canvas.drawBitmap(resizedBitmap, 0, 0, paint);
 
-            // Tăng độ tương phản
+            // Increase contrast
             ColorMatrix contrastMatrix = new ColorMatrix();
             contrastMatrix.set(new float[] {
                     1.5f, 0, 0, 0, 0,
@@ -482,7 +471,7 @@ public class CameraFragment extends Fragment {
 
             return grayscaleBitmap;
         } catch (Exception e) {
-            Log.e(TAG, "Lỗi tiền xử lý ảnh: " + e.getMessage());
+            Log.e(TAG, "Image preprocessing error: " + e.getMessage());
             return null;
         }
     }
@@ -502,12 +491,11 @@ public class CameraFragment extends Fragment {
                     return 0;
             }
         } catch (IOException e) {
-            Log.e(TAG, "Lỗi đọc EXIF: " + e.getMessage());
+            Log.e(TAG, "EXIF read error: " + e.getMessage());
             return 0;
         }
     }
 
-    // Cập nhật ngôn ngữ khi thay đổi ngôn ngữ trên spinner của HomeActivity
     public void updateLanguages(Bundle bundle) {
         String newSourceLang = bundle.getString("sourceLang", "en");
         String newTargetLang = bundle.getString("targetLang", "vi");
@@ -515,22 +503,21 @@ public class CameraFragment extends Fragment {
         String newTargetLangName = bundle.getString("targetLangName", "Vietnamese");
 
         if (!newSourceLang.equals(sourceLang) || !newTargetLang.equals(targetLang)) {
-            Log.d(TAG, "Cập nhật ngôn ngữ từ " + sourceLangName + " -> " + targetLangName +
-                    " thành " + newSourceLangName + " -> " + newTargetLangName);
+            Log.d(TAG, "Updating languages from " + sourceLangName + " -> " + targetLangName +
+                    " to " + newSourceLangName + " -> " + newTargetLangName);
             sourceLang = newSourceLang;
             targetLang = newTargetLang;
             sourceLangName = newSourceLangName;
             targetLangName = newTargetLangName;
             if (textTranslator != null) {
-                textTranslator.close(); // Đóng translator cũ
+                textTranslator.close();
             }
-            setupTranslator(); // Khởi tạo translator mới
-            tvTranslatedText.setText("Văn bản dịch: ");
-            tvOriginalText.setText("Văn bản gốc: ");
+            setupTranslator();
+            tvTranslatedText.setText("Translated text: ");
+            tvOriginalText.setText("Original text: ");
         }
     }
 
-    // Reset về trạng thái camera
     private void resetToCameraView() {
         Log.d(TAG, "resetToCameraView: Resetting to camera view");
         previewView.setVisibility(View.VISIBLE);
@@ -538,8 +525,8 @@ public class CameraFragment extends Fragment {
         graphicOverlay.setVisibility(View.GONE);
         btnCapture.setVisibility(View.VISIBLE);
         btnUpload.setVisibility(View.VISIBLE);
-        tvOriginalText.setText("Văn bản gốc: Chưa có văn bản");
-        tvTranslatedText.setText("Văn bản dịch: Chưa có văn bản");
+        tvOriginalText.setText("Original text: No text");
+        tvTranslatedText.setText("Translated text: No text");
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
         startCamera();
     }
@@ -547,10 +534,9 @@ public class CameraFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        Log.d(TAG, "Đóng CameraFragment");
+        Log.d(TAG, "Closing CameraFragment");
     }
 
-    // Class để vẽ khung văn bản
     private static class TextGraphic extends GraphicOverlay.Graphic {
         private final Paint rectPaint;
         private final Text.TextBlock textBlock;
@@ -576,7 +562,7 @@ public class CameraFragment extends Fragment {
             }
 
             RectF rect = new RectF(textBlock.getBoundingBox());
-            rect = translateRect(rect);
+            rect = overlay.translateRect(rect); // Call translateRect from GraphicOverlay
             canvas.drawRect(rect, rectPaint);
         }
 
@@ -586,7 +572,7 @@ public class CameraFragment extends Fragment {
                 return false;
             }
             RectF rect = new RectF(textBlock.getBoundingBox());
-            rect = translateRect(rect);
+            rect = overlay.translateRect(rect);
             return rect.contains(x, y);
         }
 
@@ -598,7 +584,6 @@ public class CameraFragment extends Fragment {
         }
     }
 
-    // Interface để xử lý sự kiện click vào văn bản
     private interface OnTextClickListener {
         void onTextClicked(String text);
     }
