@@ -5,13 +5,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -49,10 +42,10 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 import hcmute.edu.vn.projectfinalandroid.R;
+import hcmute.edu.vn.projectfinalandroid.controller.ImageProcessor;
 import hcmute.edu.vn.projectfinalandroid.controller.LanguageManager;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
 import hcmute.edu.vn.projectfinalandroid.graphics.GraphicOverlay;
@@ -68,12 +61,12 @@ public class CameraFragment extends Fragment {
     private TextView tvTranslatedText; // txtView lưu văn bản dịch
     private BottomSheetBehavior<LinearLayout> bottomSheetBehavior; // Nơi để hiện văn bản gốc & dịch
     private LanguageManager languageManager; // Quản lý ngôn ngữ và dịch
+    private ImageProcessor imageProcessor; // Quản lý xử lý ảnh
     private ImageButton btnCapture; // Nút chụp hình
     private ImageButton btnUpload; // Nút tải ảnh lên
     private static final int CAMERA_PERMISSION_CODE = 16; // Biến để kiểm tra quyền camera
     private static final int STORAGE_PERMISSION_CODE = 101; // Biến để kiểm tra quyền truy cập kho lưu trữ
     private static final int PICK_IMAGE_REQUEST = 102; // Biến để kiểm tra quyền chọn hình
-    private static final int TARGET_IMAGE_SIZE = 800; // Size ảnh sau khi chụp
     private static final String TAG = "CameraFragment";
 
     @Nullable
@@ -81,9 +74,15 @@ public class CameraFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         Log.d(TAG, "onCreateView: Initializing view");
         View view = inflater.inflate(R.layout.fragment_camera, container, false);
+        // Ánh xạ UI
         initializeUI(view);
+        // Khởi tạo trình quản lý ngôn ngữ (lấy ngôn ngữ đầu vào, đầu ra)
         setupLanguageManager(savedInstanceState);
+        // Khởi tạo trình xử lý ảnh
+        setupImageProcessor();
+        // Lắng nghe sự kiện các nút
         setupButtonListeners();
+        // Xử lý logic khung chứa văn bản gốc và dịch
         setupBottomSheet();
         return view;
     }
@@ -99,14 +98,19 @@ public class CameraFragment extends Fragment {
         btnUpload = view.findViewById(R.id.btnUpload);
         LinearLayout bottomSheet = view.findViewById(R.id.bottomSheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        // Cho ẩn nơi dịch
+        // Cho ẩn nơi dịch văn bản đi
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
     }
 
     private void setupLanguageManager(Bundle savedInstanceState) {
-        // Khởi tạo ngôn ngữ và TextTranslator
+        // Khởi tạo ngôn ngữ và TextTranslator nhờ vào LanguageManager
         languageManager = new LanguageManager(requireContext());
         languageManager.initializeLanguages(savedInstanceState);
+    }
+
+    private void setupImageProcessor() {
+        // Khởi tạo ImageProcessor
+        imageProcessor = new ImageProcessor(requireContext());
     }
 
     private void setupButtonListeners() {
@@ -137,7 +141,7 @@ public class CameraFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG, "onViewCreated: Checking camera permission");
-
+        // Yêu cầu quyền Camera
         previewView.post(() -> {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 startCamera();
@@ -147,6 +151,7 @@ public class CameraFragment extends Fragment {
         });
     }
 
+    // Có quyền camera thì hỏi tiếp quyền bộ nhớ, hong thì yêu cầu cấp
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -185,12 +190,12 @@ public class CameraFragment extends Fragment {
             Uri imageUri = data.getData();
             Log.d(TAG, "Image URI: " + imageUri.toString());
             try {
-                Pair<Bitmap, Integer> result = loadBitmapAndRotation(imageUri);
+                Pair<Bitmap, Integer> result = imageProcessor.loadBitmapAndRotation(imageUri);
                 Bitmap bitmap = result.first;
                 int rotationDegrees = result.second;
                 if (bitmap != null) {
                     if (rotationDegrees != 0) {
-                        bitmap = rotateBitmap(bitmap, rotationDegrees);
+                        bitmap = imageProcessor.rotateBitmap(bitmap, rotationDegrees);
                     }
                     processImage(bitmap);
                 } else {
@@ -207,60 +212,7 @@ public class CameraFragment extends Fragment {
         }
     }
 
-    private Pair<Bitmap, Integer> loadBitmapAndRotation(Object source) throws IOException {
-        Bitmap bitmap = null;
-        int rotationDegrees = 0;
-        ExifInterface exif = null;
-
-        if (source instanceof String) { // From camera (file path)
-            String filePath = (String) source;
-            bitmap = BitmapFactory.decodeFile(filePath);
-            try {
-                exif = new ExifInterface(filePath);
-            } catch (IOException e) {
-                Log.e(TAG, "Error reading EXIF from file: " + e.getMessage());
-            }
-        } else if (source instanceof Uri) { // From storage (Uri)
-            Uri imageUri = (Uri) source;
-            InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
-            if (inputStream != null) {
-                bitmap = BitmapFactory.decodeStream(inputStream);
-                inputStream.close();
-                // Reopen stream for EXIF
-                inputStream = requireContext().getContentResolver().openInputStream(imageUri);
-                if (inputStream != null) {
-                    try {
-                        exif = new ExifInterface(inputStream);
-                    } catch (IOException e) {
-                        Log.e(TAG, "Error reading EXIF from URI: " + e.getMessage());
-                    } finally {
-                        inputStream.close();
-                    }
-                }
-            }
-        }
-
-        if (exif != null) {
-            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-            switch (orientation) {
-                case ExifInterface.ORIENTATION_ROTATE_90:
-                    rotationDegrees = 90;
-                    break;
-                case ExifInterface.ORIENTATION_ROTATE_180:
-                    rotationDegrees = 180;
-                    break;
-                case ExifInterface.ORIENTATION_ROTATE_270:
-                    rotationDegrees = 270;
-                    break;
-                default:
-                    rotationDegrees = 0;
-                    break;
-            }
-        }
-
-        return new Pair<>(bitmap, rotationDegrees);
-    }
-
+    // Bắt đầu mở camera
     private void startCamera() {
         Log.d(TAG, "Starting camera");
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
@@ -308,6 +260,7 @@ public class CameraFragment extends Fragment {
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
+    // Chụp hình
     private void takePhoto() {
         Log.d(TAG, "Capturing photo");
         File photoFile = new File(requireContext().getExternalFilesDir(null), "photo.jpg");
@@ -319,12 +272,12 @@ public class CameraFragment extends Fragment {
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults output) {
                 Log.d(TAG, "Photo saved: " + photoFile.getAbsolutePath());
                 try {
-                    Pair<Bitmap, Integer> result = loadBitmapAndRotation(photoFile.getAbsolutePath());
+                    Pair<Bitmap, Integer> result = imageProcessor.loadBitmapAndRotation(photoFile.getAbsolutePath());
                     Bitmap bitmap = result.first;
                     int rotationDegrees = result.second;
                     if (bitmap != null) {
                         if (rotationDegrees != 0) {
-                            bitmap = rotateBitmap(bitmap, rotationDegrees);
+                            bitmap = imageProcessor.rotateBitmap(bitmap, rotationDegrees);
                         }
                         Log.d(TAG, "Captured image resolution: " + bitmap.getWidth() + "x" + bitmap.getHeight());
                         processImage(bitmap);
@@ -346,12 +299,7 @@ public class CameraFragment extends Fragment {
         });
     }
 
-    private Bitmap rotateBitmap(Bitmap bitmap, int rotationDegrees) {
-        Matrix matrix = new Matrix();
-        matrix.postRotate(rotationDegrees);
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-    }
-
+    // Mở hình ảnh
     private void openImagePicker() {
         String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ?
                 Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
@@ -365,6 +313,7 @@ public class CameraFragment extends Fragment {
         }
     }
 
+    // Xử lý ảnh
     private void processImage(Bitmap bitmap) {
         try {
             if (bitmap == null) {
@@ -373,13 +322,14 @@ public class CameraFragment extends Fragment {
                 return;
             }
 
-            Bitmap processedBitmap = preprocessImage(bitmap);
+            Bitmap processedBitmap = imageProcessor.preprocessImage(bitmap);
             if (processedBitmap == null) {
                 Log.e(TAG, "Image preprocessing error");
                 Toast.makeText(requireContext(), "Image preprocessing error", Toast.LENGTH_SHORT).show();
                 return;
             }
 
+            // Ẩn hiện các thành phần cần thiết
             previewView.setVisibility(View.GONE);
             capturedImageView.setImageBitmap(bitmap);
             capturedImageView.setVisibility(View.VISIBLE);
@@ -396,6 +346,7 @@ public class CameraFragment extends Fragment {
                     capturedImageView.getHeight()
             );
 
+            // Gọi TextRecognizer để nhận diện văn bản
             InputImage image = InputImage.fromBitmap(processedBitmap, 0);
             TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
@@ -471,38 +422,7 @@ public class CameraFragment extends Fragment {
         }
     }
 
-    private Bitmap preprocessImage(Bitmap bitmap) {
-        try {
-            float scale = Math.min((float) TARGET_IMAGE_SIZE / bitmap.getWidth(), (float) TARGET_IMAGE_SIZE / bitmap.getHeight());
-            Matrix scaleMatrix = new Matrix();
-            scaleMatrix.postScale(scale, scale);
-            Bitmap resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), scaleMatrix, true);
-
-            Bitmap grayscaleBitmap = Bitmap.createBitmap(resizedBitmap.getWidth(), resizedBitmap.getHeight(), Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(grayscaleBitmap);
-            Paint paint = new Paint();
-            ColorMatrix colorMatrix = new ColorMatrix();
-            colorMatrix.setSaturation(0);
-            paint.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
-            canvas.drawBitmap(resizedBitmap, 0, 0, paint);
-
-            ColorMatrix contrastMatrix = new ColorMatrix();
-            contrastMatrix.set(new float[] {
-                    1.5f, 0, 0, 0, 0,
-                    0, 1.5f, 0, 0, 0,
-                    0, 0, 1.5f, 0, 0,
-                    0, 0, 0, 1, 0
-            });
-            paint.setColorFilter(new ColorMatrixColorFilter(contrastMatrix));
-            canvas.drawBitmap(grayscaleBitmap, 0, 0, paint);
-
-            return grayscaleBitmap;
-        } catch (Exception e) {
-            Log.e(TAG, "Image preprocessing error: " + e.getMessage());
-            return null;
-        }
-    }
-
+    // Cập nhật ngôn ngữ từ spinner ở HomeActivity
     public void updateLanguages(Bundle bundle) {
         languageManager.updateLanguages(bundle, new TextTranslator.TranslationCallback() {
             @Override
@@ -522,6 +442,7 @@ public class CameraFragment extends Fragment {
         tvOriginalText.setText("Original text: ");
     }
 
+    // Quay lại màn hình camera khi đóng khung dịch
     private void resetToCameraView() {
         Log.d(TAG, "resetToCameraView: Resetting to camera view");
         previewView.setVisibility(View.VISIBLE);
