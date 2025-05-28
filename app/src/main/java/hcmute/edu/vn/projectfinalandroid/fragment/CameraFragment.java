@@ -41,7 +41,6 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
@@ -54,6 +53,7 @@ import java.io.InputStream;
 import java.util.List;
 
 import hcmute.edu.vn.projectfinalandroid.R;
+import hcmute.edu.vn.projectfinalandroid.controller.LanguageManager;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
 import hcmute.edu.vn.projectfinalandroid.graphics.GraphicOverlay;
 import hcmute.edu.vn.projectfinalandroid.graphics.TextGraphic;
@@ -67,11 +67,7 @@ public class CameraFragment extends Fragment {
     private TextView tvOriginalText; // txtView lưu văn bản gốc
     private TextView tvTranslatedText; // txtView lưu văn bản dịch
     private BottomSheetBehavior<LinearLayout> bottomSheetBehavior; // Nơi để hiện văn bản gốc & dịch
-    private TextTranslator textTranslator; // Dùng class TextTranslator để dịch
-    private String sourceLang; // Ngôn ngữ gốc
-    private String targetLang; // Ngôn ngữ dịch
-    private String sourceLangName; // Tên ngôn ngữ gốc
-    private String targetLangName; // Tên ngôn ngữ dịch
+    private LanguageManager languageManager; // Quản lý ngôn ngữ và dịch
     private ImageButton btnCapture; // Nút chụp hình
     private ImageButton btnUpload; // Nút tải ảnh lên
     private static final int CAMERA_PERMISSION_CODE = 16; // Biến để kiểm tra quyền camera
@@ -85,7 +81,14 @@ public class CameraFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         Log.d(TAG, "onCreateView: Initializing view");
         View view = inflater.inflate(R.layout.fragment_camera, container, false);
+        initializeUI(view);
+        setupLanguageManager(savedInstanceState);
+        setupButtonListeners();
+        setupBottomSheet();
+        return view;
+    }
 
+    private void initializeUI(View view) {
         // Ánh xạ UI
         previewView = view.findViewById(R.id.previewView);
         capturedImageView = view.findViewById(R.id.capturedImageView);
@@ -98,16 +101,21 @@ public class CameraFragment extends Fragment {
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         // Cho ẩn nơi dịch
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+    }
 
-        // Khởi tạo ngôn ngữ (lấy ngôn ngữ gốc & ngôn ngữ dịch từ Bundle, từ HomeActivity truyền xuống)
-        initializeLanguages(getArguments());
-        // Khởi tạo hàm dịch ngôn ngữ
-        setupTranslator();
+    private void setupLanguageManager(Bundle savedInstanceState) {
+        // Khởi tạo ngôn ngữ và TextTranslator
+        languageManager = new LanguageManager(requireContext());
+        languageManager.initializeLanguages(savedInstanceState);
+    }
 
+    private void setupButtonListeners() {
         // Tạo event các nút bấm
         btnCapture.setOnClickListener(v -> takePhoto());
         btnUpload.setOnClickListener(v -> openImagePicker());
+    }
 
+    private void setupBottomSheet() {
         // Tạo event kéo xuống cho khung hiện văn bản gốc & dịch
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             // Khi kéo xuống hết thì hiện camera lên
@@ -118,14 +126,11 @@ public class CameraFragment extends Fragment {
                 }
             }
 
-
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
                 // Thêm hiệu ứng trượt nếu cần
             }
         });
-
-        return view;
     }
 
     @Override
@@ -254,51 +259,6 @@ public class CameraFragment extends Fragment {
         }
 
         return new Pair<>(bitmap, rotationDegrees);
-    }
-
-    private void initializeLanguages(Bundle args) {
-        if (args != null && args.containsKey("sourceLang") && args.containsKey("targetLang")) {
-            sourceLang = args.getString("sourceLang");
-            targetLang = args.getString("targetLang");
-            sourceLangName = args.getString("sourceLangName", "Unknown");
-            targetLangName = args.getString("targetLangName", "Unknown");
-            Log.d(TAG, "Received languages from Bundle: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
-        } else {
-            sourceLang = TranslateLanguage.ENGLISH;
-            targetLang = TranslateLanguage.VIETNAMESE;
-            sourceLangName = "English";
-            targetLangName = "Vietnamese";
-            Log.d(TAG, "No Bundle or missing data, using default: sourceLang=" + sourceLang + ", targetLang=" + targetLang);
-        }
-    }
-
-    private void setupTranslator() {
-        textTranslator = new TextTranslator(sourceLang, targetLang, new TextTranslator.TranslationCallback() {
-            @Override
-            public void onModelReady() {
-                Log.d(TAG, "Translation model ready: " + sourceLangName + " -> " + targetLangName);
-                Toast.makeText(requireContext(), "Translation model loaded!", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onModelDownloadFailed(String error) {
-                Log.e(TAG, "Translation model download failed: " + error);
-                Toast.makeText(requireContext(), "Translation model download error: " + error, Toast.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onTranslationSuccess(String translatedText) {
-                Log.d(TAG, "Translated text: " + translatedText);
-                tvTranslatedText.setText("Translated text: " + translatedText);
-            }
-
-            @Override
-            public void onTranslationFailed(String errorMessage) {
-                Log.e(TAG, "Translation error: " + errorMessage);
-                tvTranslatedText.setText("Translated text: Translation error");
-                Toast.makeText(requireContext(), "Translation error: " + errorMessage, Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private void startCamera() {
@@ -449,7 +409,7 @@ public class CameraFragment extends Fragment {
                                     @Override
                                     public void onTextClicked(String text1) {
                                         tvOriginalText.setText("Original text: " + text1);
-                                        textTranslator.translateText(text1, new TextTranslator.TranslationCallback() {
+                                        languageManager.getTextTranslator().translateText(text1, new TextTranslator.TranslationCallback() {
                                             @Override
                                             public void onModelReady() {}
                                             @Override
@@ -474,7 +434,7 @@ public class CameraFragment extends Fragment {
                             }
                             String firstText = textBlocks.get(0).getText();
                             tvOriginalText.setText("Original text: " + firstText);
-                            textTranslator.translateText(firstText, new TextTranslator.TranslationCallback() {
+                            languageManager.getTextTranslator().translateText(firstText, new TextTranslator.TranslationCallback() {
                                 @Override
                                 public void onModelReady() {}
                                 @Override
@@ -544,25 +504,22 @@ public class CameraFragment extends Fragment {
     }
 
     public void updateLanguages(Bundle bundle) {
-        String newSourceLang = bundle.getString("sourceLang", "en");
-        String newTargetLang = bundle.getString("targetLang", "vi");
-        String newSourceLangName = bundle.getString("sourceLangName", "English");
-        String newTargetLangName = bundle.getString("targetLangName", "Vietnamese");
-
-        if (!newSourceLang.equals(sourceLang) || !newTargetLang.equals(targetLang)) {
-            Log.d(TAG, "Updating languages from " + sourceLangName + " -> " + targetLangName +
-                    " to " + newSourceLangName + " -> " + newTargetLangName);
-            sourceLang = newSourceLang;
-            targetLang = newTargetLang;
-            sourceLangName = newSourceLangName;
-            targetLangName = newTargetLangName;
-            if (textTranslator != null) {
-                textTranslator.close();
+        languageManager.updateLanguages(bundle, new TextTranslator.TranslationCallback() {
+            @Override
+            public void onModelReady() {}
+            @Override
+            public void onModelDownloadFailed(String error) {}
+            @Override
+            public void onTranslationSuccess(String translatedText) {
+                tvTranslatedText.setText("Translated text: " + translatedText);
             }
-            setupTranslator();
-            tvTranslatedText.setText("Translated text: ");
-            tvOriginalText.setText("Original text: ");
-        }
+            @Override
+            public void onTranslationFailed(String errorMessage) {
+                tvTranslatedText.setText("Translated text: Translation error");
+            }
+        });
+        tvTranslatedText.setText("Translated text: ");
+        tvOriginalText.setText("Original text: ");
     }
 
     private void resetToCameraView() {
@@ -582,5 +539,6 @@ public class CameraFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         Log.d(TAG, "Closing CameraFragment");
+        languageManager.close();
     }
 }
