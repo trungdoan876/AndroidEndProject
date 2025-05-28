@@ -23,7 +23,7 @@
         android:scaleType="fitCenter" />
 
     <!-- Canvas for drawing text bounding boxes -->
-    <hcmute.edu.vn.projectfinalandroid.fragment.GraphicOverlay
+    <hcmute.edu.vn.projectfinalandroid.graphics.GraphicOverlay
         android:id="@+id/graphicOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

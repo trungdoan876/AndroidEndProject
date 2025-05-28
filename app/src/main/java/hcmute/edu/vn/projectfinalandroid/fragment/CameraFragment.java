@@ -7,18 +7,17 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,32 +51,33 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
+import hcmute.edu.vn.projectfinalandroid.graphics.GraphicOverlay;
+import hcmute.edu.vn.projectfinalandroid.graphics.TextGraphic;
 
 public class CameraFragment extends Fragment {
-    private PreviewView previewView;
-    private ImageCapture imageCapture;
-    private ImageView capturedImageView;
-    private GraphicOverlay graphicOverlay;
-    private TextView tvOriginalText;
-    private TextView tvTranslatedText;
-    private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
-    private TextTranslator textTranslator;
-    private String sourceLang;
-    private String targetLang;
-    private String sourceLangName;
-    private String targetLangName;
-    private ImageButton btnCapture;
-    private ImageButton btnUpload;
-    private static final int CAMERA_PERMISSION_CODE = 100;
-    private static final int STORAGE_PERMISSION_CODE = 101;
-    private static final int PICK_IMAGE_REQUEST = 102;
-    private static final int TARGET_IMAGE_SIZE = 800;
-    private List<Text.TextBlock> textBlocks;
+    private PreviewView previewView; // Nơi hiện ống kính camera
+    private ImageCapture imageCapture; // Hình sau khi chụp
+    private ImageView capturedImageView; // View hiện hình sau khi chụp/chọn
+    private GraphicOverlay graphicOverlay; // Dùng class GraphicOverlay để vẽ các khung bao quanh chữ
+    private List<Text.TextBlock> textBlocks; // Các chữ để vẽ khung để bao quanh
+    private TextView tvOriginalText; // txtView lưu văn bản gốc
+    private TextView tvTranslatedText; // txtView lưu văn bản dịch
+    private BottomSheetBehavior<LinearLayout> bottomSheetBehavior; // Nơi để hiện văn bản gốc & dịch
+    private TextTranslator textTranslator; // Dùng class TextTranslator để dịch
+    private String sourceLang; // Ngôn ngữ gốc
+    private String targetLang; // Ngôn ngữ dịch
+    private String sourceLangName; // Tên ngôn ngữ gốc
+    private String targetLangName; // Tên ngôn ngữ dịch
+    private ImageButton btnCapture; // Nút chụp hình
+    private ImageButton btnUpload; // Nút tải ảnh lên
+    private static final int CAMERA_PERMISSION_CODE = 16; // Biến để kiểm tra quyền camera
+    private static final int STORAGE_PERMISSION_CODE = 101; // Biến để kiểm tra quyền truy cập kho lưu trữ
+    private static final int PICK_IMAGE_REQUEST = 102; // Biến để kiểm tra quyền chọn hình
+    private static final int TARGET_IMAGE_SIZE = 800; // Size ảnh sau khi chụp
     private static final String TAG = "CameraFragment";
 
     @Nullable
@@ -86,6 +86,7 @@ public class CameraFragment extends Fragment {
         Log.d(TAG, "onCreateView: Initializing view");
         View view = inflater.inflate(R.layout.fragment_camera, container, false);
 
+        // Ánh xạ UI
         previewView = view.findViewById(R.id.previewView);
         capturedImageView = view.findViewById(R.id.capturedImageView);
         graphicOverlay = view.findViewById(R.id.graphicOverlay);
@@ -95,25 +96,32 @@ public class CameraFragment extends Fragment {
         btnUpload = view.findViewById(R.id.btnUpload);
         LinearLayout bottomSheet = view.findViewById(R.id.bottomSheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        // Cho ẩn nơi dịch
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
 
+        // Khởi tạo ngôn ngữ (lấy ngôn ngữ gốc & ngôn ngữ dịch từ Bundle, từ HomeActivity truyền xuống)
         initializeLanguages(getArguments());
+        // Khởi tạo hàm dịch ngôn ngữ
         setupTranslator();
 
+        // Tạo event các nút bấm
         btnCapture.setOnClickListener(v -> takePhoto());
         btnUpload.setOnClickListener(v -> openImagePicker());
 
+        // Tạo event kéo xuống cho khung hiện văn bản gốc & dịch
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            // Khi kéo xuống hết thì hiện camera lên
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                Log.d(TAG, "BottomSheet state changed: " + newState);
                 if (newState == BottomSheetBehavior.STATE_HIDDEN || newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    Log.d(TAG, "BottomSheet hidden or collapsed, resetting to camera view");
                     resetToCameraView();
                 }
             }
 
+
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // Thêm hiệu ứng trượt nếu cần
             }
         });
 
@@ -172,9 +180,10 @@ public class CameraFragment extends Fragment {
             Uri imageUri = data.getData();
             Log.d(TAG, "Image URI: " + imageUri.toString());
             try {
-                Bitmap bitmap = BitmapFactory.decodeStream(requireContext().getContentResolver().openInputStream(imageUri));
+                Pair<Bitmap, Integer> result = loadBitmapAndRotation(imageUri);
+                Bitmap bitmap = result.first;
+                int rotationDegrees = result.second;
                 if (bitmap != null) {
-                    int rotationDegrees = getRotationDegreesFromUri(imageUri);
                     if (rotationDegrees != 0) {
                         bitmap = rotateBitmap(bitmap, rotationDegrees);
                     }
@@ -193,28 +202,58 @@ public class CameraFragment extends Fragment {
         }
     }
 
-    private int getRotationDegreesFromUri(Uri imageUri) {
-        try {
+    private Pair<Bitmap, Integer> loadBitmapAndRotation(Object source) throws IOException {
+        Bitmap bitmap = null;
+        int rotationDegrees = 0;
+        ExifInterface exif = null;
+
+        if (source instanceof String) { // From camera (file path)
+            String filePath = (String) source;
+            bitmap = BitmapFactory.decodeFile(filePath);
+            try {
+                exif = new ExifInterface(filePath);
+            } catch (IOException e) {
+                Log.e(TAG, "Error reading EXIF from file: " + e.getMessage());
+            }
+        } else if (source instanceof Uri) { // From storage (Uri)
+            Uri imageUri = (Uri) source;
             InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
             if (inputStream != null) {
-                ExifInterface exif = new ExifInterface(inputStream);
-                int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                bitmap = BitmapFactory.decodeStream(inputStream);
                 inputStream.close();
-                switch (orientation) {
-                    case ExifInterface.ORIENTATION_ROTATE_90:
-                        return 90;
-                    case ExifInterface.ORIENTATION_ROTATE_180:
-                        return 180;
-                    case ExifInterface.ORIENTATION_ROTATE_270:
-                        return 270;
-                    default:
-                        return 0;
+                // Reopen stream for EXIF
+                inputStream = requireContext().getContentResolver().openInputStream(imageUri);
+                if (inputStream != null) {
+                    try {
+                        exif = new ExifInterface(inputStream);
+                    } catch (IOException e) {
+                        Log.e(TAG, "Error reading EXIF from URI: " + e.getMessage());
+                    } finally {
+                        inputStream.close();
+                    }
                 }
             }
-        } catch (IOException e) {
-            Log.e(TAG, "Error reading EXIF from URI: " + e.getMessage());
         }
-        return 0;
+
+        if (exif != null) {
+            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotationDegrees = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotationDegrees = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotationDegrees = 270;
+                    break;
+                default:
+                    rotationDegrees = 0;
+                    break;
+            }
+        }
+
+        return new Pair<>(bitmap, rotationDegrees);
     }
 
     private void initializeLanguages(Bundle args) {
@@ -319,13 +358,24 @@ public class CameraFragment extends Fragment {
             @Override
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults output) {
                 Log.d(TAG, "Photo saved: " + photoFile.getAbsolutePath());
-                int rotationDegrees = getRotationDegrees(photoFile.getAbsolutePath());
-                Bitmap bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath());
-                if (rotationDegrees != 0) {
-                    bitmap = rotateBitmap(bitmap, rotationDegrees);
+                try {
+                    Pair<Bitmap, Integer> result = loadBitmapAndRotation(photoFile.getAbsolutePath());
+                    Bitmap bitmap = result.first;
+                    int rotationDegrees = result.second;
+                    if (bitmap != null) {
+                        if (rotationDegrees != 0) {
+                            bitmap = rotateBitmap(bitmap, rotationDegrees);
+                        }
+                        Log.d(TAG, "Captured image resolution: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+                        processImage(bitmap);
+                    } else {
+                        Log.e(TAG, "Bitmap is null");
+                        Toast.makeText(requireContext(), "Failed to load image", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "Error reading image from file: " + e.getMessage());
+                    Toast.makeText(requireContext(), "Error reading image", Toast.LENGTH_SHORT).show();
                 }
-                Log.d(TAG, "Captured image resolution: " + bitmap.getWidth() + "x" + bitmap.getHeight());
-                processImage(bitmap);
             }
 
             @Override
@@ -378,11 +428,12 @@ public class CameraFragment extends Fragment {
             btnCapture.setVisibility(View.GONE);
             btnUpload.setVisibility(View.GONE);
 
+            // Truyền kích thước thực tế của capturedImageView
             graphicOverlay.setImageDimensions(
                     processedBitmap.getWidth(),
                     processedBitmap.getHeight(),
-                    bitmap.getWidth(),
-                    bitmap.getHeight()
+                    capturedImageView.getWidth(),
+                    capturedImageView.getHeight()
             );
 
             InputImage image = InputImage.fromBitmap(processedBitmap, 0);
@@ -394,28 +445,31 @@ public class CameraFragment extends Fragment {
                         if (!textBlocks.isEmpty()) {
                             graphicOverlay.clear();
                             for (Text.TextBlock block : textBlocks) {
-                                graphicOverlay.add(new TextGraphic(graphicOverlay, block, text1 -> {
-                                    tvOriginalText.setText("Original text: " + text1);
-                                    textTranslator.translateText(text1, new TextTranslator.TranslationCallback() {
-                                        @Override
-                                        public void onModelReady() {}
-                                        @Override
-                                        public void onModelDownloadFailed(String error) {
-                                            Log.e(TAG, "Translation model download error: " + error);
-                                            Toast.makeText(requireContext(), "Translation model download error: " + error, Toast.LENGTH_LONG).show();
-                                        }
-                                        @Override
-                                        public void onTranslationSuccess(String translatedText) {
-                                            Log.d(TAG, "Translated text: " + translatedText);
-                                            tvTranslatedText.setText("Translated text: " + translatedText);
-                                        }
-                                        @Override
-                                        public void onTranslationFailed(String errorMessage) {
-                                            Log.e(TAG, "Translation error: " + errorMessage);
-                                            tvTranslatedText.setText("Translated text: Translation error");
-                                            Toast.makeText(requireContext(), "Translation error: " + errorMessage, Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
+                                graphicOverlay.add(new TextGraphic(graphicOverlay, block, new TextGraphic.OnTextClickListener() {
+                                    @Override
+                                    public void onTextClicked(String text1) {
+                                        tvOriginalText.setText("Original text: " + text1);
+                                        textTranslator.translateText(text1, new TextTranslator.TranslationCallback() {
+                                            @Override
+                                            public void onModelReady() {}
+                                            @Override
+                                            public void onModelDownloadFailed(String error) {
+                                                Log.e(TAG, "Translation model download error: " + error);
+                                                Toast.makeText(requireContext(), "Translation model download error: " + error, Toast.LENGTH_LONG).show();
+                                            }
+                                            @Override
+                                            public void onTranslationSuccess(String translatedText) {
+                                                Log.d(TAG, "Translated text: " + translatedText);
+                                                tvTranslatedText.setText("Translated text: " + translatedText);
+                                            }
+                                            @Override
+                                            public void onTranslationFailed(String errorMessage) {
+                                                Log.e(TAG, "Translation error: " + errorMessage);
+                                                tvTranslatedText.setText("Translated text: Translation error");
+                                                Toast.makeText(requireContext(), "Translation error: " + errorMessage, Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                                    }
                                 }));
                             }
                             String firstText = textBlocks.get(0).getText();
@@ -489,26 +543,6 @@ public class CameraFragment extends Fragment {
         }
     }
 
-    private int getRotationDegrees(String filePath) {
-        try {
-            ExifInterface exif = new ExifInterface(filePath);
-            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-            switch (orientation) {
-                case ExifInterface.ORIENTATION_ROTATE_90:
-                    return 90;
-                case ExifInterface.ORIENTATION_ROTATE_180:
-                    return 180;
-                case ExifInterface.ORIENTATION_ROTATE_270:
-                    return 270;
-                default:
-                    return 0;
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "EXIF read error: " + e.getMessage());
-            return 0;
-        }
-    }
-
     public void updateLanguages(Bundle bundle) {
         String newSourceLang = bundle.getString("sourceLang", "en");
         String newTargetLang = bundle.getString("targetLang", "vi");
@@ -548,84 +582,5 @@ public class CameraFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         Log.d(TAG, "Closing CameraFragment");
-    }
-
-    private static class TextGraphic extends GraphicOverlay.Graphic {
-        private final Paint rectPaint;
-        private final Text.TextBlock textBlock;
-        private final OnTextClickListener listener;
-        private boolean isSelected;
-
-        TextGraphic(GraphicOverlay overlay, Text.TextBlock textBlock, OnTextClickListener listener) {
-            super(overlay);
-            this.textBlock = textBlock;
-            this.listener = listener;
-            this.isSelected = false;
-
-            rectPaint = new Paint();
-            rectPaint.setStyle(Paint.Style.STROKE);
-            rectPaint.setStrokeWidth(4.0f); // Độ dày của nét vẽ
-            rectPaint.setAntiAlias(true); // Các góc bo tròn mượt
-            updatePaintColor();
-
-            overlay.postInvalidate();
-        }
-
-        private void updatePaintColor() {
-            rectPaint.setColor(isSelected ? Color.RED : Color.YELLOW); // Đỏ là chọn, Vàng là không chọn
-        }
-
-        @Override
-        public void draw(Canvas canvas) {
-            if (textBlock == null || textBlock.getBoundingBox() == null) {
-                return;
-            }
-
-            RectF rect = new RectF(textBlock.getBoundingBox());
-            // Inflate the rectangle to make it slightly larger
-            float inflateAmount = 5.0f; // Độ rộng Viền quanh chữ
-            rect.left -= inflateAmount;
-            rect.top -= inflateAmount;
-            rect.right += inflateAmount;
-            rect.bottom += inflateAmount;
-
-            rect = overlay.translateRect(rect);
-            updatePaintColor();
-            canvas.drawRoundRect(rect, 10.0f, 10.0f, rectPaint); // Rounded corners with 16px radius
-        }
-
-        @Override
-        public boolean contains(float x, float y) {
-            if (textBlock == null || textBlock.getBoundingBox() == null) {
-                return false;
-            }
-            RectF rect = new RectF(textBlock.getBoundingBox());
-            float inflateAmount = 8.0f;
-            rect.left -= inflateAmount;
-            rect.top -= inflateAmount;
-            rect.right += inflateAmount;
-            rect.bottom += inflateAmount;
-            rect = overlay.translateRect(rect);
-            return rect.contains(x, y);
-        }
-
-        @Override
-        public void onTap(float x, float y) {
-            if (contains(x, y)) {
-                isSelected = true; // Mark this graphic as selected
-                // Deselect other graphics
-                for (GraphicOverlay.Graphic graphic : overlay.graphics) {
-                    if (graphic != this && graphic instanceof TextGraphic) {
-                        ((TextGraphic) graphic).isSelected = false;
-                    }
-                }
-                listener.onTextClicked(textBlock.getText());
-                overlay.postInvalidate(); // Redraw to update colors
-            }
-        }
-    }
-
-    private interface OnTextClickListener {
-        void onTextClicked(String text);
     }
 }
