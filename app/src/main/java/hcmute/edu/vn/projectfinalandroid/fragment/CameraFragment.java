@@ -51,6 +51,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -181,8 +182,14 @@ public class CameraFragment extends Fragment {
             Uri imageUri = data.getData();
             Log.d(TAG, "Image URI: " + imageUri.toString());
             try {
+                // Load bitmap from URI
                 Bitmap bitmap = BitmapFactory.decodeStream(requireContext().getContentResolver().openInputStream(imageUri));
                 if (bitmap != null) {
+                    // Get rotation degrees from EXIF
+                    int rotationDegrees = getRotationDegreesFromUri(imageUri);
+                    if (rotationDegrees != 0) {
+                        bitmap = rotateBitmap(bitmap, rotationDegrees);
+                    }
                     processImage(bitmap);
                 } else {
                     Log.e(TAG, "Bitmap is null");
@@ -196,6 +203,30 @@ public class CameraFragment extends Fragment {
             Log.w(TAG, "Image picking failed: requestCode=" + requestCode + ", resultCode=" + resultCode);
             Toast.makeText(requireContext(), "Failed to select image", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private int getRotationDegreesFromUri(Uri imageUri) {
+        try {
+            InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
+            if (inputStream != null) {
+                ExifInterface exif = new ExifInterface(inputStream);
+                int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                inputStream.close();
+                switch (orientation) {
+                    case ExifInterface.ORIENTATION_ROTATE_90:
+                        return 90;
+                    case ExifInterface.ORIENTATION_ROTATE_180:
+                        return 180;
+                    case ExifInterface.ORIENTATION_ROTATE_270:
+                        return 270;
+                    default:
+                        return 0;
+                }
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Error reading EXIF from URI: " + e.getMessage());
+        }
+        return 0;
     }
 
     private void initializeLanguages(Bundle args) {
