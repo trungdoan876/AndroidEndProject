@@ -59,25 +59,25 @@ import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
 
 public class CameraFragment extends Fragment {
-    private PreviewView previewView; // Camera preview
-    private ImageCapture imageCapture; // For capturing images
-    private ImageView capturedImageView; // Displays captured image
-    private GraphicOverlay graphicOverlay; // Draws text bounding boxes
-    private TextView tvOriginalText; // Original text
-    private TextView tvTranslatedText; // Translated text
-    private BottomSheetBehavior<LinearLayout> bottomSheetBehavior; // Bottom sheet control
-    private TextTranslator textTranslator; // Text translation
-    private String sourceLang; // Source language
-    private String targetLang; // Target language
-    private String sourceLangName; // Source language name
-    private String targetLangName; // Target language name
-    private ImageButton btnCapture; // Capture button
-    private ImageButton btnUpload; // Upload button
-    private static final int CAMERA_PERMISSION_CODE = 100; // Camera permission code
-    private static final int STORAGE_PERMISSION_CODE = 101; // Storage permission code
-    private static final int PICK_IMAGE_REQUEST = 102; // Image picker request code
-    private static final int TARGET_IMAGE_SIZE = 800; // Max size for processed image
-    private List<Text.TextBlock> textBlocks; // Recognized text blocks
+    private PreviewView previewView;
+    private ImageCapture imageCapture;
+    private ImageView capturedImageView;
+    private GraphicOverlay graphicOverlay;
+    private TextView tvOriginalText;
+    private TextView tvTranslatedText;
+    private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
+    private TextTranslator textTranslator;
+    private String sourceLang;
+    private String targetLang;
+    private String sourceLangName;
+    private String targetLangName;
+    private ImageButton btnCapture;
+    private ImageButton btnUpload;
+    private static final int CAMERA_PERMISSION_CODE = 100;
+    private static final int STORAGE_PERMISSION_CODE = 101;
+    private static final int PICK_IMAGE_REQUEST = 102;
+    private static final int TARGET_IMAGE_SIZE = 800;
+    private List<Text.TextBlock> textBlocks;
     private static final String TAG = "CameraFragment";
 
     @Nullable
@@ -86,7 +86,6 @@ public class CameraFragment extends Fragment {
         Log.d(TAG, "onCreateView: Initializing view");
         View view = inflater.inflate(R.layout.fragment_camera, container, false);
 
-        // Initialize UI components
         previewView = view.findViewById(R.id.previewView);
         capturedImageView = view.findViewById(R.id.capturedImageView);
         graphicOverlay = view.findViewById(R.id.graphicOverlay);
@@ -97,19 +96,12 @@ public class CameraFragment extends Fragment {
         LinearLayout bottomSheet = view.findViewById(R.id.bottomSheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
 
-        // Initialize languages
         initializeLanguages(getArguments());
-
-        // Set up translator
         setupTranslator();
 
-        // Set up capture button
         btnCapture.setOnClickListener(v -> takePhoto());
-
-        // Set up upload button
         btnUpload.setOnClickListener(v -> openImagePicker());
 
-        // Bottom sheet callback
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -122,7 +114,6 @@ public class CameraFragment extends Fragment {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                // Handle bottom sheet sliding
             }
         });
 
@@ -134,7 +125,6 @@ public class CameraFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG, "onViewCreated: Checking camera permission");
 
-        // Check camera permission
         previewView.post(() -> {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 startCamera();
@@ -182,10 +172,8 @@ public class CameraFragment extends Fragment {
             Uri imageUri = data.getData();
             Log.d(TAG, "Image URI: " + imageUri.toString());
             try {
-                // Load bitmap from URI
                 Bitmap bitmap = BitmapFactory.decodeStream(requireContext().getContentResolver().openInputStream(imageUri));
                 if (bitmap != null) {
-                    // Get rotation degrees from EXIF
                     int rotationDegrees = getRotationDegreesFromUri(imageUri);
                     if (rotationDegrees != 0) {
                         bitmap = rotateBitmap(bitmap, rotationDegrees);
@@ -375,7 +363,6 @@ public class CameraFragment extends Fragment {
                 return;
             }
 
-            // Preprocess image for text recognition
             Bitmap processedBitmap = preprocessImage(bitmap);
             if (processedBitmap == null) {
                 Log.e(TAG, "Image preprocessing error");
@@ -383,16 +370,14 @@ public class CameraFragment extends Fragment {
                 return;
             }
 
-            // Display original image and hide camera
             previewView.setVisibility(View.GONE);
-            capturedImageView.setImageBitmap(bitmap); // Use original bitmap for display
+            capturedImageView.setImageBitmap(bitmap);
             capturedImageView.setVisibility(View.VISIBLE);
             graphicOverlay.setVisibility(View.VISIBLE);
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             btnCapture.setVisibility(View.GONE);
             btnUpload.setVisibility(View.GONE);
 
-            // Set dimensions for GraphicOverlay scaling
             graphicOverlay.setImageDimensions(
                     processedBitmap.getWidth(),
                     processedBitmap.getHeight(),
@@ -474,13 +459,11 @@ public class CameraFragment extends Fragment {
 
     private Bitmap preprocessImage(Bitmap bitmap) {
         try {
-            // Resize image while maintaining aspect ratio
             float scale = Math.min((float) TARGET_IMAGE_SIZE / bitmap.getWidth(), (float) TARGET_IMAGE_SIZE / bitmap.getHeight());
             Matrix scaleMatrix = new Matrix();
             scaleMatrix.postScale(scale, scale);
             Bitmap resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), scaleMatrix, true);
 
-            // Convert to grayscale
             Bitmap grayscaleBitmap = Bitmap.createBitmap(resizedBitmap.getWidth(), resizedBitmap.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(grayscaleBitmap);
             Paint paint = new Paint();
@@ -489,7 +472,6 @@ public class CameraFragment extends Fragment {
             paint.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
             canvas.drawBitmap(resizedBitmap, 0, 0, paint);
 
-            // Increase contrast
             ColorMatrix contrastMatrix = new ColorMatrix();
             contrastMatrix.set(new float[] {
                     1.5f, 0, 0, 0, 0,
@@ -572,18 +554,25 @@ public class CameraFragment extends Fragment {
         private final Paint rectPaint;
         private final Text.TextBlock textBlock;
         private final OnTextClickListener listener;
+        private boolean isSelected;
 
         TextGraphic(GraphicOverlay overlay, Text.TextBlock textBlock, OnTextClickListener listener) {
             super(overlay);
             this.textBlock = textBlock;
             this.listener = listener;
+            this.isSelected = false;
 
             rectPaint = new Paint();
-            rectPaint.setColor(Color.RED);
             rectPaint.setStyle(Paint.Style.STROKE);
-            rectPaint.setStrokeWidth(4.0f);
+            rectPaint.setStrokeWidth(4.0f); // Độ dày của nét vẽ
+            rectPaint.setAntiAlias(true); // Các góc bo tròn mượt
+            updatePaintColor();
 
             overlay.postInvalidate();
+        }
+
+        private void updatePaintColor() {
+            rectPaint.setColor(isSelected ? Color.RED : Color.YELLOW); // Đỏ là chọn, Vàng là không chọn
         }
 
         @Override
@@ -593,8 +582,16 @@ public class CameraFragment extends Fragment {
             }
 
             RectF rect = new RectF(textBlock.getBoundingBox());
-            rect = overlay.translateRect(rect); // Call translateRect from GraphicOverlay
-            canvas.drawRect(rect, rectPaint);
+            // Inflate the rectangle to make it slightly larger
+            float inflateAmount = 5.0f; // Độ rộng Viền quanh chữ
+            rect.left -= inflateAmount;
+            rect.top -= inflateAmount;
+            rect.right += inflateAmount;
+            rect.bottom += inflateAmount;
+
+            rect = overlay.translateRect(rect);
+            updatePaintColor();
+            canvas.drawRoundRect(rect, 10.0f, 10.0f, rectPaint); // Rounded corners with 16px radius
         }
 
         @Override
@@ -603,6 +600,11 @@ public class CameraFragment extends Fragment {
                 return false;
             }
             RectF rect = new RectF(textBlock.getBoundingBox());
+            float inflateAmount = 8.0f;
+            rect.left -= inflateAmount;
+            rect.top -= inflateAmount;
+            rect.right += inflateAmount;
+            rect.bottom += inflateAmount;
             rect = overlay.translateRect(rect);
             return rect.contains(x, y);
         }
@@ -610,7 +612,15 @@ public class CameraFragment extends Fragment {
         @Override
         public void onTap(float x, float y) {
             if (contains(x, y)) {
+                isSelected = true; // Mark this graphic as selected
+                // Deselect other graphics
+                for (GraphicOverlay.Graphic graphic : overlay.graphics) {
+                    if (graphic != this && graphic instanceof TextGraphic) {
+                        ((TextGraphic) graphic).isSelected = false;
+                    }
+                }
                 listener.onTextClicked(textBlock.getText());
+                overlay.postInvalidate(); // Redraw to update colors
             }
         }
     }

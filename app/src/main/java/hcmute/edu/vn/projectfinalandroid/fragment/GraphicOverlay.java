@@ -15,7 +15,7 @@ import java.util.List;
 
 public class GraphicOverlay extends View {
     private static final String TAG = "GraphicOverlay";
-    private final List<Graphic> graphics = new ArrayList<>();
+    final List<Graphic> graphics = new ArrayList<>();
     private int processedImageWidth;
     private int processedImageHeight;
     private int displayedImageWidth;
