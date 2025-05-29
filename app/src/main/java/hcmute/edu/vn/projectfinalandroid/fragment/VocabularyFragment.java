@@ -15,7 +15,7 @@ import java.util.List;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.adapter.VocabularyAdapter;
-import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
+import hcmute.edu.vn.projectfinalandroid.model.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.Vocabulary;
 
 public class VocabularyFragment extends Fragment {

@@ -30,7 +30,7 @@ import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.adapter.HistoryAdapter;
 import hcmute.edu.vn.projectfinalandroid.controller.LanguageManager;
 import hcmute.edu.vn.projectfinalandroid.controller.TextTranslator;
-import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
+import hcmute.edu.vn.projectfinalandroid.model.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.Category;
 import hcmute.edu.vn.projectfinalandroid.model.History;
 import hcmute.edu.vn.projectfinalandroid.model.Vocabulary;
@@ -112,7 +112,7 @@ public class TextFragment extends Fragment {
                     }
                 });
 
-                handler.postDelayed(translateRunnable, 1000); // Delay 2s để tránh dịch quá nhiều
+                handler.postDelayed(translateRunnable, 1000); // Delay 1s để tránh dịch quá nhiều
             }
         });
     }

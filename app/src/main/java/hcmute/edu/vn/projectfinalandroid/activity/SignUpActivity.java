@@ -2,7 +2,6 @@ package hcmute.edu.vn.projectfinalandroid.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -14,7 +13,7 @@ import androidx.appcompat.widget.AppCompatEditText;
 import com.bumptech.glide.Glide;
 
 import hcmute.edu.vn.projectfinalandroid.R;
-import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
+import hcmute.edu.vn.projectfinalandroid.model.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.User;
 
 public class SignUpActivity extends AppCompatActivity {

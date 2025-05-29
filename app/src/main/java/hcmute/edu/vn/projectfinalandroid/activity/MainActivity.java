@@ -12,10 +12,9 @@ import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatEditText;
 
 import com.bumptech.glide.Glide;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.textfield.TextInputEditText;
+
 import hcmute.edu.vn.projectfinalandroid.R;
-import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
+import hcmute.edu.vn.projectfinalandroid.model.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.User;
 
 public class MainActivity extends AppCompatActivity {

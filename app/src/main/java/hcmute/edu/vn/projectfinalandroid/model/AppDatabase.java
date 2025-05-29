@@ -1,4 +1,4 @@
-package hcmute.edu.vn.projectfinalandroid.data;
+package hcmute.edu.vn.projectfinalandroid.model;
 
 import android.content.Context;
 
@@ -10,11 +10,6 @@ import hcmute.edu.vn.projectfinalandroid.dao.CategoryDAO;
 import hcmute.edu.vn.projectfinalandroid.dao.HistoryDAO;
 import hcmute.edu.vn.projectfinalandroid.dao.UserDAO;
 import hcmute.edu.vn.projectfinalandroid.dao.VocabularyDAO;
-import hcmute.edu.vn.projectfinalandroid.model.Category;
-import hcmute.edu.vn.projectfinalandroid.model.ChatMessage;
-import hcmute.edu.vn.projectfinalandroid.model.History;
-import hcmute.edu.vn.projectfinalandroid.model.User;
-import hcmute.edu.vn.projectfinalandroid.model.Vocabulary;
 
 // AppDatabase.java
 @Database(entities = {User.class, Category.class, History.class,

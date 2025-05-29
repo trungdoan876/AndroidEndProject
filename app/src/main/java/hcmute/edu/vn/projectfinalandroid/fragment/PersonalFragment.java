@@ -22,7 +22,7 @@ import java.util.Locale;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.adapter.CategoryAdapter;
-import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
+import hcmute.edu.vn.projectfinalandroid.model.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.Category;
 
 public class PersonalFragment extends Fragment {
