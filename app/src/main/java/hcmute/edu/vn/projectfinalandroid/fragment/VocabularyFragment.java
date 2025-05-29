@@ -15,49 +15,45 @@ import java.util.List;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.adapter.VocabularyAdapter;
+import hcmute.edu.vn.projectfinalandroid.controller.VocabularyController;
 import hcmute.edu.vn.projectfinalandroid.model.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.Vocabulary;
+import hcmute.edu.vn.projectfinalandroid.repository.VocabularyRepository;
 
 public class VocabularyFragment extends Fragment {
     private TextView tvCategoryTitle;
     private RecyclerView recyclerVocabulary;
-    private AppDatabase db;
-    private List<Vocabulary> vocabList = new ArrayList<>();
     private VocabularyAdapter adapter;
+    private List<Vocabulary> vocabList = new ArrayList<>();
+    private VocabularyController controller;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_vocabulary, container, false);
         tvCategoryTitle = view.findViewById(R.id.tvCategoryTitle);
         recyclerVocabulary = view.findViewById(R.id.recyclerVocabulary);
-        db = AppDatabase.getInstance(requireContext());
+
+        AppDatabase db = AppDatabase.getInstance(requireContext());
+        VocabularyRepository repository = new VocabularyRepository(db);
 
         Bundle args = getArguments();
         if (args != null) {
             int idCategory = args.getInt("id_category");
             String nameCategory = args.getString("name_category");
-            tvCategoryTitle.setText("Danh mục: " + nameCategory);
+            tvCategoryTitle.setText("Category: " + nameCategory);
 
             adapter = new VocabularyAdapter(vocabList, (vocab, isChecked) -> {
                 vocab.setLearned(isChecked);
-                new Thread(() -> db.vocabularyDAO().update(vocab)).start();
+                controller.updateVocabulary(vocab); // cập nhật qua Controller
             });
 
             recyclerVocabulary.setLayoutManager(new LinearLayoutManager(requireContext()));
             recyclerVocabulary.setAdapter(adapter);
 
-            // Load dữ liệu từ Room
-            new Thread(() -> {
-                List<Vocabulary> list = db.vocabularyDAO().getByCategoryId(idCategory);
-                requireActivity().runOnUiThread(() -> {
-                    vocabList.clear();
-                    vocabList.addAll(list);
-                    adapter.notifyDataSetChanged();
-                });
-            }).start();
+            controller = new VocabularyController(repository, vocabList, adapter);
+            controller.loadVocabByCategory(idCategory); // load dữ liệu qua Controller
         }
 
         return view;
     }
 }
-

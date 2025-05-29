@@ -22,12 +22,14 @@ import java.util.Locale;
 
 import hcmute.edu.vn.projectfinalandroid.R;
 import hcmute.edu.vn.projectfinalandroid.adapter.CategoryAdapter;
+import hcmute.edu.vn.projectfinalandroid.controller.PersonalController;
 import hcmute.edu.vn.projectfinalandroid.model.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.Category;
 
 public class PersonalFragment extends Fragment {
     private TextView tvDate, tvGreeting;
     AppDatabase db;
+    PersonalController controller;
 
     @Nullable
     @Override
@@ -36,40 +38,17 @@ public class PersonalFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
 
         View view = inflater.inflate(R.layout.fragment_personal, container, false);
-        // Ánh xạ
         tvDate = view.findViewById(R.id.tvDate);
         tvGreeting = view.findViewById(R.id.tvGreeting);
-        // Hiển thị ngày hiện tại
+
         showCurrentDate();
+
         db = AppDatabase.getInstance(requireContext());
-        ListOfCategory(view);
-        return view;
-    }
-    private void showCurrentDate() {
-        Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, dd MMMM", new Locale("vi")); // tiếng Việt
-        String date = dateFormat.format(calendar.getTime());
-        tvDate.setText(date);
 
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        String greeting;
-        if (hour >= 5 && hour < 12) {
-            greeting = "Good morning! 🌞";
-        } else if (hour >= 12 && hour < 18) {
-            greeting = "Good afternoon! ☀️";
-        } else {
-            greeting = "Good evening! 🌙";
-        }
-        tvGreeting.setText(greeting);
-    }
-    //hiển thị danh sách các danh mục mà người dùng tạo
-    private void ListOfCategory(View view) {
         RecyclerView recyclerCategories = view.findViewById(R.id.recyclerCategories);
-
         List<Category> categories = new ArrayList<>();
 
         CategoryAdapter adapter = new CategoryAdapter(categories, selectedCategory -> {
-            // Khi click danh mục, mở VocabularyFragment và truyền ID
             VocabularyFragment fragment = new VocabularyFragment();
             Bundle bundle = new Bundle();
             bundle.putInt("id_category", selectedCategory.getId_category());
@@ -86,17 +65,29 @@ public class PersonalFragment extends Fragment {
         recyclerCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerCategories.setAdapter(adapter);
 
-        SharedPreferences prefs = requireActivity().getSharedPreferences("MyApp", Context.MODE_PRIVATE);
-        int userId = prefs.getInt("userId", -1);
+        // Tạo Controller và gọi load dữ liệu
+        controller = new PersonalController(requireContext(), db, categories, adapter);
+        controller.loadCategories();
 
-        new Thread(() -> {
-            List<Category> result = db.categoryDao().getAllByIdUser(userId);
-            requireActivity().runOnUiThread(() -> {
-                categories.clear();
-                categories.addAll(result);
-                adapter.notifyDataSetChanged();
-            });
-        }).start();
+        return view;
     }
 
+    private void showCurrentDate() {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, dd MMMM", new Locale("vi"));
+        String date = dateFormat.format(calendar.getTime());
+        tvDate.setText(date);
+
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        String greeting;
+        if (hour >= 5 && hour < 12) {
+            greeting = "Good morning! 🌞";
+        } else if (hour >= 12 && hour < 18) {
+            greeting = "Good afternoon! ☀️";
+        } else {
+            greeting = "Good evening! 🌙";
+        }
+        tvGreeting.setText(greeting);
+    }
 }
+
