@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
                 });
             }).start();
         });
-        //thực hiện đăng kí tài khoản
+        // chuyển qua trang thực hiện đăng kí tài khoản
         dangKyBtn = findViewById(R.id.DangKyBtn);
         dangKyBtn.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, SignUpActivity.class);

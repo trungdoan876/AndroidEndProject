@@ -12,8 +12,6 @@ import hcmute.edu.vn.projectfinalandroid.model.History;
 public interface HistoryDAO {
     @Insert
     void insert(History history);
-
-
     @Query("SELECT * FROM history WHERE id_user = :userId ORDER BY dateTime DESC")
     List<History> getHistoryByUserId(int userId);
 

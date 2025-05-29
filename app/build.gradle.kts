@@ -67,4 +67,7 @@ dependencies {
     implementation ("com.google.auth:google-auth-library-oauth2-http:1.23.0")
     // Để gọi http
     implementation ("com.squareup.okhttp3:okhttp:4.12.0")
+    //json
+    implementation ("com.google.code.gson:gson:2.10.1")
+
 }
