@@ -12,11 +12,8 @@ import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatEditText;
 
 import com.bumptech.glide.Glide;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.textfield.TextInputEditText;
 
 import hcmute.edu.vn.projectfinalandroid.R;
-import hcmute.edu.vn.projectfinalandroid.dao.UserDAO;
 import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.User;
 
@@ -33,8 +30,8 @@ public class SignUpActivity extends AppCompatActivity {
         Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/bfyhkapi_expires_30_days.png")
                 .into((ImageView) findViewById(R.id.earth));
 
-        Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/pmryk124_expires_30_days.png")
-                .into((ImageView) findViewById(R.id.logoUTE));
+//        Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/pmryk124_expires_30_days.png")
+//                .into((ImageView) findViewById(R.id.logoUTE));
 
         Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/zx4uwtrx_expires_30_days.png")
                 .into((ImageView) findViewById(R.id.lineAroundEarth));

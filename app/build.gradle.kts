@@ -72,7 +72,7 @@ dependencies {
     //json
     implementation ("com.google.code.gson:gson:2.10.1")
 
-    //
+    // glide để tải ảnh từ internet
     implementation ("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
 
