@@ -1,94 +1,131 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp"
-    android:fitsSystemWindows="true"
-    android:layout_marginTop="30dp">
+    android:background="#FFFFFF"
+    android:backgroundTint="@color/white">
 
-    <!-- Logo -->
     <ImageView
-        android:id="@+id/logoImageView"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:src="@drawable/logo"
-        android:contentDescription="App Logo"
+        android:id="@+id/logoUTE"
+        android:layout_width="66dp"
+        android:layout_height="85dp"
+        android:scaleType="fitXY"
+        android:src="@mipmap/ic_launcher"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"/>
+
+    <!-- Header Section (replacing RelativeLayout r9l4ye59c3g) -->
+    <ImageView
+        android:id="@+id/earth"
+        android:layout_width="262dp"
+        android:layout_height="262dp"
+        android:src="@mipmap/ic_launcher"
+        android:scaleType="fitXY"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        android:layout_marginTop="100dp"/>
 
-    <!-- Card chứa form đăng nhập -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/loginCard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="8dp"
-        app:layout_constraintTop_toBottomOf="@id/logoImageView"
+    <ImageView
+        android:id="@+id/lineAroundEarth"
+        android:layout_width="329dp"
+        android:layout_height="222dp"
+        android:src="@mipmap/ic_launcher"
+        android:scaleType="fitXY"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"
-        android:padding="16dp">
+        android:layout_marginTop="120dp"/>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+    <!-- Username Input -->
+    <TextView
+        android:id="@+id/labelSignIn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sign in"
+        android:textColor="#000000"
+        android:textSize="70sp"
+        android:fontFamily="@font/marckscript_regular"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/lineAroundEarth" />
 
-            <!-- Username -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/usernameInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Username"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/usernameEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/outline_for_edittext"
+        android:paddingVertical="12dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:hint="Username"
+        android:drawableStart="@drawable/ic_username"
+        android:drawablePadding="10dp"
+        app:layout_constraintTop_toBottomOf="@id/labelSignIn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.8"
+        android:layout_marginTop="15dp"
+        android:textSize="25dp"/>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/usernameEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    />
-            </com.google.android.material.textfield.TextInputLayout>
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/passwordEditText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/outline_for_edittext"
+        android:paddingVertical="12dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:hint="Password"
+        android:inputType="textPassword"
+        android:drawableStart="@drawable/ic_password"
+        android:drawablePadding="8dp"
+        app:layout_constraintTop_toBottomOf="@id/usernameEditText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.8"
+        android:layout_marginTop="15dp"
+        android:textSize="25dp"/>
 
-            <!-- Password -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/passwordInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Password"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_marginTop="16dp">
+    <!-- Buttons Section -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/DangNhapBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="60dp"
+        android:background="@drawable/btn_black"
+        android:paddingHorizontal="25dp"
+        android:paddingVertical="9dp"
+        android:text="Sign in"
+        android:textColor="#FFFDFD"
+        android:textSize="24sp"
+        android:fontFamily="@font/quicksand_bold"
+        android:layout_marginTop="30dp"
+        app:layout_constraintTop_toBottomOf="@id/passwordEditText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/DangKyBtn"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        android:textAllCaps="false"/>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/passwordEditText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword"/>
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Login Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/DangNhapBtn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Sign in"
-                android:textColor="@android:color/white"
-                app:cornerRadius="8dp"
-                android:layout_marginTop="24dp"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/DangKyBtn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Sign up"
-                android:textColor="@android:color/white"
-                app:cornerRadius="8dp"
-                android:layout_marginTop="24dp"/>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/DangKyBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="60dp"
+        android:background="@drawable/btn_white"
+        android:paddingHorizontal="25dp"
+        android:paddingVertical="9dp"
+        android:text="Sign up"
+        android:textColor="#000000"
+        android:textSize="24sp"
+        android:fontFamily="@font/quicksand_bold"
+        android:layout_marginStart="13dp"
+        android:layout_marginTop="30dp"
+        app:layout_constraintTop_toBottomOf="@id/passwordEditText"
+        app:layout_constraintStart_toEndOf="@id/DangNhapBtn"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:textAllCaps="false"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -3,10 +3,15 @@ package hcmute.edu.vn.projectfinalandroid.activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
+import androidx.appcompat.widget.AppCompatEditText;
+
+import com.bumptech.glide.Glide;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import hcmute.edu.vn.projectfinalandroid.R;
@@ -14,14 +19,24 @@ import hcmute.edu.vn.projectfinalandroid.data.AppDatabase;
 import hcmute.edu.vn.projectfinalandroid.model.User;
 
 public class MainActivity extends AppCompatActivity {
-    private TextInputEditText username, password;
-    private MaterialButton dangNhapBtn, dangKyBtn;
+    private AppCompatEditText username, password;
+    private AppCompatButton dangNhapBtn, dangKyBtn;
     AppDatabase db;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/bfyhkapi_expires_30_days.png")
+                .into((ImageView) findViewById(R.id.earth));
+
+        Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/pmryk124_expires_30_days.png")
+                .into((ImageView) findViewById(R.id.logoUTE));
+
+        Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/zx4uwtrx_expires_30_days.png")
+                .into((ImageView) findViewById(R.id.lineAroundEarth));
+
         username = findViewById(R.id.usernameEditText);
         password = findViewById(R.id.passwordEditText);
         db = AppDatabase.getInstance(this);
