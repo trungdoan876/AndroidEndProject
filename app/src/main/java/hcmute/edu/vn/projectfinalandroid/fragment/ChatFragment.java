@@ -45,7 +45,7 @@ public class ChatFragment extends Fragment {
         adapter = new ChatAdapter(messages);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
-
+        // người dùng nhấn nút gửi
         btnSend.setOnClickListener(v -> {
             String userText = editMessage.getText().toString().trim();
             if (userText.isEmpty()) return;

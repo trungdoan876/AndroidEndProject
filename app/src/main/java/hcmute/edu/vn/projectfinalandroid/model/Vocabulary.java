@@ -15,18 +15,19 @@ import androidx.room.PrimaryKey;
 public class Vocabulary {
     @PrimaryKey(autoGenerate = true)
     private int id_vocab;
-
     private String vocab;
     private String mean_vocab;
     private int id_category;
+    private boolean isLearned;
 
     public Vocabulary() {
     }
 
-    public Vocabulary(String vocab, String mean_vocab, int id_category) {
+    public Vocabulary(String vocab, String mean_vocab, int id_category, boolean isLearned) {
         this.vocab = vocab;
         this.mean_vocab = mean_vocab;
         this.id_category = id_category;
+        this.isLearned = isLearned;
     }
 
     public int getId_vocab() {
@@ -59,5 +60,13 @@ public class Vocabulary {
 
     public void setId_category(int id_category) {
         this.id_category = id_category;
+    }
+
+    public boolean isLearned() {
+        return isLearned;
+    }
+
+    public void setLearned(boolean learned) {
+        isLearned = learned;
     }
 }

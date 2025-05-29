@@ -19,7 +19,7 @@ import hcmute.edu.vn.projectfinalandroid.model.Vocabulary;
 
 // AppDatabase.java
 @Database(entities = {User.class, Category.class, History.class,
-        Vocabulary.class, ChatMessage.class, Conversation.class}, version = 4)
+        Vocabulary.class, ChatMessage.class, Conversation.class}, version = 5)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
 
