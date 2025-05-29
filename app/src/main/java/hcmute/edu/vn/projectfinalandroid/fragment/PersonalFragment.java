@@ -65,6 +65,7 @@ public class PersonalFragment extends Fragment {
     //hiển thị danh sách các danh mục mà người dùng tạo
     private void ListOfCategory(View view) {
         RecyclerView recyclerCategories = view.findViewById(R.id.recyclerCategories);
+
         List<Category> categories = new ArrayList<>();
 
         CategoryAdapter adapter = new CategoryAdapter(categories, selectedCategory -> {

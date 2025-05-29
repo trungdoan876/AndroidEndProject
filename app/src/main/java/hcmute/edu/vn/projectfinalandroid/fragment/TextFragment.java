@@ -22,6 +22,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.button.MaterialButton;
+
 import java.util.ArrayList;
 import java.util.List;
 import hcmute.edu.vn.projectfinalandroid.R;
@@ -39,7 +41,7 @@ public class TextFragment extends Fragment {
     private Runnable translateRunnable;
     private LanguageManager languageManager;
     private AppDatabase db;
-    private ImageButton btnHistory, btnAddVocab;
+    private MaterialButton btnHistory, btnAddVocab;
     private EditText inputText;
 
     @Nullable

@@ -30,8 +30,8 @@ public class SignUpActivity extends AppCompatActivity {
         Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/bfyhkapi_expires_30_days.png")
                 .into((ImageView) findViewById(R.id.earth));
 
-//        Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/pmryk124_expires_30_days.png")
-//                .into((ImageView) findViewById(R.id.logoUTE));
+        Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/pmryk124_expires_30_days.png")
+                .into((ImageView) findViewById(R.id.logoUTE));
 
         Glide.with(this).load("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/1v6CpPz76d/zx4uwtrx_expires_30_days.png")
                 .into((ImageView) findViewById(R.id.lineAroundEarth));

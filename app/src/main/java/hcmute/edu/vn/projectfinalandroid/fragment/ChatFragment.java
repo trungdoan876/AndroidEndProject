@@ -14,6 +14,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +28,8 @@ public class ChatFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private EditText editMessage;
-    private ImageButton btnSend;
+    private MaterialButton btnSend;
+
     private final List<ChatMessage> messages = new ArrayList<>();
     private ChatAdapter adapter;
 

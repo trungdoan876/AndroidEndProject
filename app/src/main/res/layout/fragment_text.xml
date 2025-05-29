@@ -1,60 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:background="#F9F9F9">
+    android:background="#FFFFFF"
+    android:padding="16dp">
 
-    <EditText
-        android:id="@+id/inputText"
-        android:layout_width="match_parent"
+    <!-- Input Text -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/inputTextLayout"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Nhập văn bản cần dịch"
-        android:background="@android:drawable/editbox_background_normal"
-        android:padding="16dp"
-        android:textSize="16sp"
-        android:elevation="2dp"
-        android:textColor="#000000"
-        android:textColorHint="#999999"
-        android:layout_marginBottom="16dp" />
+        app:layout_constraintWidth_percent="0.9"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        app:hintTextColor="#616161"
+        app:boxBackgroundMode="outline"
+        app:boxStrokeColor="#212121"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:startIconTint="#616161"
+        app:hintEnabled="true"
+        app:hintAnimationEnabled="true"
+        android:hint="Nhập văn bản cần dịch">
 
-    <TextView
-        android:id="@+id/outputText"
-        android:layout_width="match_parent"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/inputText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#212121"
+            android:textColorHint="#757575"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-medium"
+            android:inputType="text|textMultiLine"
+            android:maxLines="4"
+            android:padding="12dp"
+            android:background="@null" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Output Text -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/outputTextContainer"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Văn bản đã được dịch"
-        android:textSize="16sp"
-        android:textColor="#333333"
-        android:background="#FFFFFF"
-        android:elevation="2dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="16dp"
-        android:minHeight="100dp" />
+        app:layout_constraintWidth_percent="0.9"
+        app:layout_constraintTop_toBottomOf="@id/inputTextLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="#F5F5F5">
+
+        <TextView
+            android:id="@+id/outputText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Văn bản đã được dịch"
+            android:textSize="16sp"
+            android:textColor="#212121"
+            android:fontFamily="sans-serif"
+            android:minHeight="120dp"
+            android:gravity="start|top" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Buttons -->
     <LinearLayout
+        android:id="@+id/buttonContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_gravity="end">
-    <ImageButton
-        android:id="@+id/btnViewHistory"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_gravity="end"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_history"
-        android:layout_marginBottom="16dp"
-        android:scaleType="fitCenter"/>
-    <ImageButton
-        android:id="@+id/btnAddVocabulary"
-        android:layout_width="36dp"
-        android:layout_marginLeft="10dp"
-        android:layout_height="36dp"
-        android:layout_gravity="end"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_add"
-        android:layout_marginBottom="16dp"
-        android:scaleType="fitCenter"/>
+        app:layout_constraintTop_toBottomOf="@id/outputTextContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnViewHistory"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_history"
+            app:iconTint="#FFFFFF"
+            app:backgroundTint="#212121"
+            app:cornerRadius="24dp"
+            app:rippleColor="#B0BEC5"
+            android:contentDescription="View History"
+            style="@style/Widget.MaterialComponents.Button.Icon"
+            android:layout_marginEnd="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddVocabulary"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_add"
+            app:iconTint="#FFFFFF"
+            app:backgroundTint="#212121"
+            app:cornerRadius="24dp"
+            app:rippleColor="#B0BEC5"
+            android:contentDescription="Add Vocabulary"
+            style="@style/Widget.MaterialComponents.Button.Icon" />
+
     </LinearLayout>
-</LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
