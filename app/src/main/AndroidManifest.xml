@@ -11,8 +11,12 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
 
     <application
+
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -33,6 +37,7 @@
         </activity>
         <activity android:name=".activity.HomeActivity"/>
         <activity android:name=".activity.SignUpActivity"/>
+        <receiver android:name=".receiver.ReminderReceiver"/>
     </application>
 
 </manifest>

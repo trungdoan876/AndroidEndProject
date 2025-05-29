@@ -27,7 +27,7 @@ public class ChatFragment extends Fragment {
     private RecyclerView recyclerView;
     private EditText editMessage;
     private ImageButton btnSend;
-    private List<ChatMessage> messages = new ArrayList<>();
+    private final List<ChatMessage> messages = new ArrayList<>();
     private ChatAdapter adapter;
 
     @Nullable
@@ -51,7 +51,7 @@ public class ChatFragment extends Fragment {
             if (userText.isEmpty()) return;
 
             // Thêm tin nhắn người dùng vào danh sách
-            ChatMessage userMessage = new ChatMessage(1, "user", userText);
+            ChatMessage userMessage = new ChatMessage("user", userText);
             messages.add(userMessage);
             adapter.notifyItemInserted(messages.size() - 1);
             recyclerView.scrollToPosition(messages.size() - 1);
@@ -64,7 +64,7 @@ public class ChatFragment extends Fragment {
                     if (getActivity() == null) return;
                     getActivity().runOnUiThread(() -> {
                         // Thêm tin nhắn phản hồi từ bot
-                        ChatMessage botMessage = new ChatMessage(1, "assistant", message);
+                        ChatMessage botMessage = new ChatMessage("assistant", message);
                         messages.add(botMessage);
                         adapter.notifyItemInserted(messages.size() - 1);
                         recyclerView.scrollToPosition(messages.size() - 1);
@@ -74,13 +74,10 @@ public class ChatFragment extends Fragment {
                 @Override
                 public void onError(String errorMessage) {
                     if (getActivity() == null) return;
-                    getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Lỗi: " + errorMessage, Toast.LENGTH_SHORT).show();
-                    });
+                    getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Lỗi: " + errorMessage, Toast.LENGTH_SHORT).show());
                 }
             });
         });
-
         return view;
     }
 }

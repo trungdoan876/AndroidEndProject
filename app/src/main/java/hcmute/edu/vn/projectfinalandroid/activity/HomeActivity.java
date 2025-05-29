@@ -1,6 +1,15 @@
 package hcmute.edu.vn.projectfinalandroid.activity;
 
+import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -9,13 +18,17 @@ import android.widget.ImageButton;
 import android.widget.Spinner;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.mlkit.nl.translate.TranslateLanguage;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,18 +38,23 @@ import hcmute.edu.vn.projectfinalandroid.fragment.CameraFragment;
 import hcmute.edu.vn.projectfinalandroid.fragment.ChatFragment;
 import hcmute.edu.vn.projectfinalandroid.fragment.PersonalFragment;
 import hcmute.edu.vn.projectfinalandroid.fragment.TextFragment;
+import hcmute.edu.vn.projectfinalandroid.receiver.ReminderReceiver;
 
 public class HomeActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private Spinner spSourceLang, spTargetLang;
     private Map<String, String> languageMap;
     private List<String> languageNames;
+    private static final int REQUEST_NOTIFICATION_PERMISSION = 100;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.tab_layout);
+        requestNotificationPermissionIfNeeded();
+        scheduleMultipleReminders(this);
 
         // Khởi tạo danh sách ngôn ngữ
         languageMap = new HashMap<>();
@@ -257,4 +275,84 @@ public class HomeActivity extends AppCompatActivity {
                 .replace(R.id.fragmentContainer, fragment)
                 .commit();
     }
+    private void scheduleMultipleReminders(Context context) {
+        Log.d(TAG, "Scheduling fixed-time reminders by hour & minute...");
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        // Mỗi phần tử là {giờ, phút}
+        int[][] times = {
+                {7, 30},   // 07:30 sáng
+                {12, 15},  // 12:15 trưa
+                {20, 30}   // 20:00 tối
+        };
+
+        for (int i = 0; i < times.length; i++) {
+            int hour = times[i][0];
+            int minute = times[i][1];
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.HOUR_OF_DAY, hour);
+            calendar.set(Calendar.MINUTE, minute);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+
+            // Nếu giờ này đã qua trong ngày hôm nay thì đặt cho ngày mai
+            if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+                calendar.add(Calendar.DATE, 1);
+            }
+
+            Intent intent = new Intent(context, ReminderReceiver.class);
+            intent.putExtra("reminder_id", i);
+
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    context, i, intent, PendingIntent.FLAG_IMMUTABLE
+            );
+
+            if (alarmManager != null) {
+                alarmManager.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        calendar.getTimeInMillis(),
+                        pendingIntent
+                );
+            } else {
+                Log.e(TAG, "AlarmManager is null!");
+            }
+        }
+    }
+
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        REQUEST_NOTIFICATION_PERMISSION);
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            }
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d("Permission", "Notification permission granted");
+            } else {
+                Log.d("Permission", "Notification permission denied");
+            }
+        }
+    }
+
 }
