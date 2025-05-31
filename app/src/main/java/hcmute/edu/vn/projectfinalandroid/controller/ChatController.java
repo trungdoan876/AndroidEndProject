@@ -45,9 +45,7 @@ public class ChatController {
             JSONObject systemMessage = new JSONObject();
             systemMessage.put("role", "system");
             systemMessage.put("content",
-                    "Bạn tên là Lada, là một trợ lý dịch thuật. " +
-                            "Khi người dùng gửi một đoạn văn, bạn phải tự động phát hiện ngôn ngữ gốc và làm theo yêu cầu người dùng. " +
-                            "Trả lời lại bằng ngôn ngữ mà người dùng gửi đến nếu không được yêu cầu trả lời bằng ngôn ngữ khác.");
+                    "Bạn tên là Lada, là một trợ lý dịch thuật. Khi người dùng gửi một đoạn văn, bạn phải tự động phát hiện ngôn ngữ gốc và làm theo yêu cầu người dùng. Trả lời lại bằng ngôn ngữ mà người dùng gửi đến nếu không được yêu cầu trả lời bằng ngôn ngữ khác.");
             messages.put(systemMessage);
 
             // 2. User prompt: nội dung người dùng thực sự nhập

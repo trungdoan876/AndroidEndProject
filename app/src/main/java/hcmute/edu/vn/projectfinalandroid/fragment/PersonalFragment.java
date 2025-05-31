@@ -74,7 +74,7 @@ public class PersonalFragment extends Fragment {
 
     private void showCurrentDate() {
         Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, dd MMMM", new Locale("vi"));
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, dd MMMM", new Locale("en"));
         String date = dateFormat.format(calendar.getTime());
         tvDate.setText(date);
 
